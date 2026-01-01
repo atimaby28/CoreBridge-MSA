@@ -3,8 +3,20 @@ plugins {
 }
 
 dependencies {
-    // JPA 표준 API (어노테이션용)
+    // JPA (AuditLog Entity / Repository)
     api 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+    api 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // Servlet / Filter
+    api 'org.springframework.boot:spring-boot-starter-web'
+
+    // Security (Context 조회만)
+    api 'org.springframework.security:spring-security-core'
+
+    // Async (@Async)
+    api 'org.springframework.boot:spring-boot-starter-aop'
+
+    implementation project(':infra')
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'
