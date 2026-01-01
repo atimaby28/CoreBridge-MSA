@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+    <!-- =========================
+         공통 변수
+         ========================= -->
+    <Properties>
+        <Property name="LOG_DIR">logs</Property>
+        <Property name="LOG_PATTERN">
+            %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] [%X{traceId}] %-5level %c - %msg%n
+        </Property>
+    </Properties>
+
+    <!-- =========================
+         Appenders
+         ========================= -->
+    <Appenders>
+
+        <!-- 콘솔 로그 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+
+        <!-- 일반 애플리케이션 로그 -->
+        <RollingFile name="AppFile"
+                     fileName="${LOG_DIR}/app.log"
+                     filePattern="${LOG_DIR}/app-%d{yyyy-MM-dd}.log">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+            </Policies>
+        </RollingFile>
+
+        <!-- Audit 실패 전용 로그 -->
+        <RollingFile name="AuditErrorFile"
+                     fileName="${LOG_DIR}/audit-error.log"
+                     filePattern="${LOG_DIR}/audit-error-%d{yyyy-MM-dd}.log">
+            <PatternLayout
+                    pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId}] %-5level %c - %msg%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+            </Policies>
+        </RollingFile>
+
+    </Appenders>
+
+    <!-- =========================
+         Loggers
+         ========================= -->
+    <Loggers>
+
+        <!-- Audit 모듈 (실패만 ERROR) -->
+        <Logger name="halo.corebridge.common.audit"
+                level="error"
+                additivity="false">
+            <AppenderRef ref="AuditErrorFile"/>
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- 비동기 / Batch / Infra 로그 (원하면 세분화 가능) -->
+        <Logger name="halo.corebridge"
+                level="info"
+                additivity="false">
+            <AppenderRef ref="AppFile"/>
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Root Logger -->
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+        </Root>
+
+    </Loggers>
+
+</Configuration>
