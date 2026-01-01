@@ -1,0 +1,16 @@
+server.port: 8007
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/jobposting_read
+    username: root
+    password: qwer1234
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true

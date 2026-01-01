@@ -1,0 +1,46 @@
+plugins {
+	id 'java'
+	id 'io.spring.dependency-management'
+}
+
+group = 'org.halo'
+version = '0.0.1-SNAPSHOT'
+description = 'corebridge-msa'
+
+ext {
+	lombokVersion = '1.18.32'
+}
+
+subprojects {
+
+	apply plugin: 'java'
+	apply plugin: 'io.spring.dependency-management'
+
+	java {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(21)
+		}
+	}
+
+	repositories {
+		mavenCentral()
+	}
+
+	configurations {
+		compileOnly {
+			extendsFrom annotationProcessor
+		}
+	}
+
+	dependencies {
+		compileOnly "org.projectlombok:lombok:${lombokVersion}"
+		annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+		testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+		testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+	}
+
+	tasks.withType(Test).configureEach {
+		useJUnitPlatform()
+	}
+}
