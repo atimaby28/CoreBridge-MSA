@@ -20,7 +20,6 @@ include('infra')
 
 /* 서비스 모듈들 */
 include('service:user')
-include('service:audit')
 include('service:jobposting')
 include('service:comment')
 include('service:view')
