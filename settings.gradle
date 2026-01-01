@@ -12,10 +12,13 @@ pluginManagement {
 
 rootProject.name = 'corebridge'
 
+/* 공통 규칙 */
 include('common')
-include('common:snowflake')
 
-include('service')
+/* 기술 인프라 */
+include('infra')
+
+/* 서비스 모듈들 */
 include('service:user')
 include('service:audit')
 include('service:jobposting')
