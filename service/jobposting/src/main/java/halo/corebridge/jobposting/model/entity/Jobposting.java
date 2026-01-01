@@ -19,8 +19,6 @@ public class Jobposting extends BaseTimeEntity {
     private String content;
     private Long boardId; // shard key
     private Long writerId;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
     public static Jobposting create(Long jobpostingId, String title, String content, Long boardId, Long writerId) {
         Jobposting jobposting = new Jobposting();
