@@ -17,6 +17,15 @@ public class JobpostingController {
         return jobpostingService.read(jobpostingId);
     }
 
+    @GetMapping
+    public JobpostingDto.JobpostingPageResponse readAll(
+            @RequestParam("boardId") Long boardId,
+            @RequestParam("page") Long page,
+            @RequestParam("pageSize") Long pageSize
+    ) {
+        return jobpostingService.readAll(boardId, page, pageSize);
+    }
+
     @PostMapping
     public JobpostingDto.JobpostingResponse create(@RequestBody JobpostingDto.JobpostingCreateRequest request) {
         return jobpostingService.create(request);

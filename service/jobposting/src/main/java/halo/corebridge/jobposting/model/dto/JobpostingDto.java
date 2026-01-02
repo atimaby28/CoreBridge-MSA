@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class JobpostingDto {
     @Builder
@@ -43,6 +44,20 @@ public class JobpostingDto {
                     .userId(jobposting.getWriterId())
                     .createdAt(jobposting.getCreatedAt())
                     .updatedAt(jobposting.getUpdatedAt())
+                    .build();
+        }
+    }
+
+    @Builder
+    @Getter
+    public static class JobpostingPageResponse {
+        private List<JobpostingResponse> jobpostings;
+        private Long jobpostingCount;
+
+        public static JobpostingPageResponse of(List<JobpostingResponse> jobpostings, Long jobpostingCount) {
+            return JobpostingPageResponse.builder()
+                    .jobpostings(jobpostings)
+                    .jobpostingCount(jobpostingCount)
                     .build();
         }
     }

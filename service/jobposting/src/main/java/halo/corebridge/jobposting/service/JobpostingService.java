@@ -41,4 +41,17 @@ public class JobpostingService {
         jobpostingRepository.deleteById(jobpostingId);
     }
 
+
+    public JobpostingDto.JobpostingPageResponse readAll(Long boardId, Long page, Long pageSize) {
+        return JobpostingDto.JobpostingPageResponse.of(
+                jobpostingRepository.findAll(boardId, (page - 1) * pageSize, pageSize).stream()
+                        .map(JobpostingDto.JobpostingResponse::from)
+                        .toList(),
+                jobpostingRepository.count(
+                        boardId,
+                        PageLimitCalculator.calculatePageLimit(page, pageSize, 10L)
+                )
+        );
+    }
+
 }
