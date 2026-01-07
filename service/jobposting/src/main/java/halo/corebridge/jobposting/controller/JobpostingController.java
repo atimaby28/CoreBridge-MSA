@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 public class JobpostingController {
     private final JobpostingService jobpostingService;
 
-    @GetMapping("{jobpostingId}")
+    @GetMapping("/{jobpostingId}")
     public JobpostingDto.JobpostingResponse read(@PathVariable Long jobpostingId) {
         return jobpostingService.read(jobpostingId);
     }
@@ -31,12 +31,12 @@ public class JobpostingController {
         return jobpostingService.create(request);
     }
 
-    @PutMapping("{jobpostingId}")
+    @PutMapping("/{jobpostingId}")
     public JobpostingDto.JobpostingResponse update(@PathVariable Long jobpostingId, @RequestBody JobpostingDto.JobpostingUpdateRequest request) {
         return jobpostingService.update(jobpostingId, request);
     }
 
-    @DeleteMapping("{jobpostingId}")
+    @DeleteMapping("/{jobpostingId}")
     public void delete(@PathVariable Long jobpostingId) {
         jobpostingService.delete(jobpostingId);
     }
