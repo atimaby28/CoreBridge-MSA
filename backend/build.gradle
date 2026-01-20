@@ -1,0 +1,56 @@
+plugins {
+    id 'java'
+    id 'io.spring.dependency-management'
+}
+
+group = 'halo.corebridge'
+version = '0.0.1-SNAPSHOT'
+description = 'CoreBridge Backend MSA'
+
+ext {
+    lombokVersion = '1.18.36'
+    springBootVersion = '3.5.9'
+}
+
+subprojects {
+
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+        }
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+
+    dependencies {
+        // Lombok
+        compileOnly "org.projectlombok:lombok:${lombokVersion}"
+        annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+        testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+        testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+        // Test
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+}

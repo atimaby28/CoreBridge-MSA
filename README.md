@@ -270,9 +270,9 @@ npm run dev
 
 | 역할 | 이메일 | 비밀번호 |
 |------|--------|----------|
-| 구직자 | user@test.com | password |
-| 기업 | company@test.com | password |
-| 관리자 | admin@test.com | password |
+| 구직자 | user@test.com | qwer1234 |
+| 기업 | company@test.com | qwer1234 |
+| 관리자 | admin@test.com | qwer1234 |
 
 ---
 

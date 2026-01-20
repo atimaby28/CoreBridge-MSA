@@ -1,0 +1,25 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    // JPA (Entity, Repository)
+    api 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+    api 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // Web (Filter, Servlet)
+    api 'org.springframework.boot:spring-boot-starter-web'
+
+    // Security (SecurityContext 조회용)
+    api 'org.springframework.security:spring-security-core'
+
+    // AOP (@Async 등)
+    api 'org.springframework.boot:spring-boot-starter-aop'
+
+    // Validation
+    api 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}
