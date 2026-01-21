@@ -1,0 +1,32 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/user
+    username: root
+    password: qwer1234
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+# JWT 설정
+jwt:
+  secret: corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256
+  access-token-expiration: 1800000    # 30분 (ms)
+  refresh-token-expiration: 604800000 # 7일 (ms)
+
+logging:
+  level:
+    halo.corebridge: DEBUG
