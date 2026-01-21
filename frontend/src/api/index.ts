@@ -4,6 +4,7 @@ import type { BaseResponse } from '@/types'
 // 서비스별 baseURL (현재 User 서비스만 구현됨)
 const SERVICE_URLS: Record<string, string> = {
   user: import.meta.env.VITE_USER_API_URL || 'http://localhost:8081',
+  audit: import.meta.env.VITE_AUDIT_API_URL || 'http://localhost:8013',
   // TODO: 추가 서비스
   // gateway: 'http://localhost:8080',
   // jobposting: 'http://localhost:8082',
@@ -76,6 +77,7 @@ function createApiInstance(serviceName: string): AxiosInstance {
 
 // 서비스별 API 인스턴스
 export const userApi = createApiInstance('user')
+export const auditApi = createApiInstance('audit')
 
 // TODO: 추가 서비스
 // export const jobpostingApi = createApiInstance('jobposting')
