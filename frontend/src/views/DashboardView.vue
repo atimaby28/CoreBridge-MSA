@@ -2,11 +2,12 @@
 import { computed, ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { adminUserService } from '@/api/user'
+import { getAuditStats, getRecentAudits, type AuditStatsResponse, type AuditResponse } from '@/api/audit'
 
 const authStore = useAuthStore()
 
-// Admin 통계 데이터
-const stats = ref({
+// Admin 사용자 통계 데이터
+const userStats = ref({
   totalUsers: 0,
   activeUsers: 0,
   blockedUsers: 0,
@@ -14,7 +15,13 @@ const stats = ref({
   companyCount: 0,
   userCount: 0,
 })
+
+// Admin 감사 로그 통계
+const auditStats = ref<AuditStatsResponse | null>(null)
+const recentAudits = ref<AuditResponse[]>([])
+
 const statsLoading = ref(false)
+const auditLoading = ref(false)
 
 // 역할에 따른 대시보드 타이틀
 const dashboardTitle = computed(() => {
@@ -29,14 +36,20 @@ const welcomeMessage = computed(() => {
   return '오늘의 채용 현황을 확인해보세요.'
 })
 
+// 에러율 계산
+const errorRate = computed(() => {
+  if (!auditStats.value || !auditStats.value.totalRequests) return '0.0'
+  return ((auditStats.value.errorCount / auditStats.value.totalRequests) * 100).toFixed(1)
+})
+
 // Admin 통계 로드
-async function loadStats() {
+async function loadUserStats() {
   if (!authStore.isAdmin) return
   
   statsLoading.value = true
   try {
     const data = await adminUserService.getStats()
-    stats.value = data
+    userStats.value = data
   } catch (e) {
     console.error('통계 로드 실패:', e)
   } finally {
@@ -44,9 +57,60 @@ async function loadStats() {
   }
 }
 
+// Admin 감사 로그 통계 로드
+async function loadAuditStats() {
+  if (!authStore.isAdmin) return
+  
+  auditLoading.value = true
+  try {
+    const [stats, recent] = await Promise.all([
+      getAuditStats(),
+      getRecentAudits(10),
+    ])
+    auditStats.value = stats
+    recentAudits.value = recent.audits
+  } catch (e) {
+    console.error('감사 로그 통계 로드 실패:', e)
+  } finally {
+    auditLoading.value = false
+  }
+}
+
+// 날짜 포맷
+function formatDateTime(dateStr: string): string {
+  const date = new Date(dateStr)
+  return date.toLocaleString('ko-KR', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+// HTTP 메서드 색상
+function getMethodClass(method: string): string {
+  const classes: Record<string, string> = {
+    GET: 'bg-green-100 text-green-700',
+    POST: 'bg-blue-100 text-blue-700',
+    PUT: 'bg-yellow-100 text-yellow-700',
+    PATCH: 'bg-orange-100 text-orange-700',
+    DELETE: 'bg-red-100 text-red-700',
+  }
+  return classes[method] || 'bg-gray-100 text-gray-700'
+}
+
+// HTTP 상태 색상
+function getStatusClass(status: number): string {
+  if (status >= 200 && status < 300) return 'text-green-600'
+  if (status >= 300 && status < 400) return 'text-yellow-600'
+  if (status >= 400) return 'text-red-600'
+  return 'text-gray-600'
+}
+
 onMounted(() => {
   if (authStore.isAdmin) {
-    loadStats()
+    loadUserStats()
+    loadAuditStats()
   }
 })
 </script>
@@ -63,81 +127,147 @@ onMounted(() => {
 
     <!-- ========== 관리자 대시보드 ========== -->
     <template v-if="authStore.isAdmin">
-      <!-- 통계 카드 -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="card">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500">전체 사용자</p>
-              <p class="text-2xl font-bold text-gray-900">{{ stats.totalUsers }}</p>
-            </div>
-            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500">활성 사용자</p>
-              <p class="text-2xl font-bold text-green-600">{{ stats.activeUsers }}</p>
-            </div>
-            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+      <!-- 사용자 통계 카드 -->
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">👥 사용자 현황</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500">전체 사용자</p>
+                <p class="text-2xl font-bold text-gray-900">{{ userStats.totalUsers }}</p>
+              </div>
+              <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="card">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500">기업 회원</p>
-              <p class="text-2xl font-bold text-purple-600">{{ stats.companyCount }}</p>
-            </div>
-            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
+          <div class="card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500">활성 사용자</p>
+                <p class="text-2xl font-bold text-green-600">{{ userStats.activeUsers }}</p>
+              </div>
+              <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="card">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500">차단 사용자</p>
-              <p class="text-2xl font-bold text-red-600">{{ stats.blockedUsers }}</p>
+          <div class="card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500">기업 회원</p>
+                <p class="text-2xl font-bold text-purple-600">{{ userStats.companyCount }}</p>
+              </div>
+              <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
             </div>
-            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-              </svg>
+          </div>
+
+          <div class="card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500">차단 사용자</p>
+                <p class="text-2xl font-bold text-red-600">{{ userStats.blockedUsers }}</p>
+              </div>
+              <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 바로가기 -->
+      <!-- 시스템 모니터링 (감사 로그 통계) -->
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">📊 시스템 모니터링</h2>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div class="card">
+            <p class="text-sm text-gray-500">총 API 요청</p>
+            <p class="text-2xl font-bold text-blue-600">{{ auditStats?.totalRequests?.toLocaleString() ?? '-' }}</p>
+          </div>
+          <div class="card">
+            <p class="text-sm text-gray-500">에러 수</p>
+            <p class="text-2xl font-bold text-red-600">{{ auditStats?.errorCount?.toLocaleString() ?? '-' }}</p>
+          </div>
+          <div class="card">
+            <p class="text-sm text-gray-500">에러율</p>
+            <p class="text-2xl font-bold" :class="parseFloat(errorRate) < 5 ? 'text-green-600' : 'text-red-600'">
+              {{ errorRate }}%
+            </p>
+          </div>
+          <div class="card">
+            <p class="text-sm text-gray-500">활성 사용자</p>
+            <p class="text-2xl font-bold text-gray-700">{{ auditStats?.uniqueUsers ?? '-' }}</p>
+          </div>
+          <div class="card">
+            <p class="text-sm text-gray-500">평균 응답시간</p>
+            <p class="text-2xl font-bold text-gray-700">{{ auditStats?.avgExecutionTime?.toFixed(0) ?? '-' }}ms</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 최근 API 요청 -->
       <div class="card">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">빠른 메뉴</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <router-link to="/admin/users" class="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <span class="font-medium text-gray-700">사용자 관리</span>
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">🕐 최근 API 요청</h2>
+          <router-link to="/admin/audits" class="text-sm text-blue-600 hover:text-blue-800">
+            전체 보기 →
           </router-link>
-          <router-link to="/admin/stats" class="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            <span class="font-medium text-gray-700">통계</span>
-          </router-link>
+        </div>
+        
+        <div v-if="auditLoading" class="text-center py-8 text-gray-500">로딩 중...</div>
+        <div v-else-if="recentAudits.length === 0" class="text-center py-8 text-gray-500">
+          아직 로그가 없습니다
+        </div>
+        <div v-else class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left text-gray-500 border-b">
+                <th class="pb-2 font-medium">시간</th>
+                <th class="pb-2 font-medium">서비스</th>
+                <th class="pb-2 font-medium">메서드</th>
+                <th class="pb-2 font-medium">URI</th>
+                <th class="pb-2 font-medium">상태</th>
+                <th class="pb-2 font-medium">응답시간</th>
+                <th class="pb-2 font-medium">사용자</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="audit in recentAudits" :key="audit.auditId" class="hover:bg-gray-50">
+                <td class="py-2 text-gray-500">{{ formatDateTime(audit.createdAt) }}</td>
+                <td class="py-2">
+                  <span class="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700">
+                    {{ audit.serviceName }}
+                  </span>
+                </td>
+                <td class="py-2">
+                  <span :class="getMethodClass(audit.httpMethod)" class="px-2 py-0.5 text-xs rounded font-medium">
+                    {{ audit.httpMethod }}
+                  </span>
+                </td>
+                <td class="py-2 text-gray-600 max-w-[200px] truncate" :title="audit.requestUri">
+                  {{ audit.requestUri }}
+                </td>
+                <td class="py-2 font-medium" :class="getStatusClass(audit.httpStatus)">
+                  {{ audit.httpStatus }}
+                </td>
+                <td class="py-2 text-gray-500">{{ audit.executionTime }}ms</td>
+                <td class="py-2 text-gray-500">{{ audit.userEmail || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </template>
@@ -154,7 +284,7 @@ onMounted(() => {
             </div>
             <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
           </div>
@@ -178,10 +308,10 @@ onMounted(() => {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-500">면접 예정</p>
-              <p class="text-2xl font-bold text-orange-600">0</p>
+              <p class="text-2xl font-bold text-yellow-600">0</p>
             </div>
-            <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
@@ -191,46 +321,15 @@ onMounted(() => {
         <div class="card">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm text-gray-500">합격자</p>
+              <p class="text-sm text-gray-500">채용 완료</p>
               <p class="text-2xl font-bold text-purple-600">0</p>
             </div>
             <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
               <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- 바로가기 -->
-      <div class="card">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">빠른 메뉴</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <router-link to="/company/jobpostings/new" class="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <span class="font-medium text-blue-700">공고 등록</span>
-          </router-link>
-          <router-link to="/company/jobpostings" class="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <span class="font-medium text-gray-700">공고 관리</span>
-          </router-link>
-          <router-link to="/company/applications" class="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <span class="font-medium text-gray-700">지원자 관리</span>
-          </router-link>
-          <router-link to="/company/schedules" class="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <span class="font-medium text-gray-700">면접 일정</span>
-          </router-link>
         </div>
       </div>
 
@@ -308,37 +407,6 @@ onMounted(() => {
               </svg>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- 바로가기 -->
-      <div class="card">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">빠른 메뉴</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <router-link to="/jobpostings" class="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <span class="font-medium text-blue-700">공고 검색</span>
-          </router-link>
-          <router-link to="/my/applications" class="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <span class="font-medium text-gray-700">지원 현황</span>
-          </router-link>
-          <router-link to="/my/resume" class="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span class="font-medium text-gray-700">이력서 관리</span>
-          </router-link>
-          <router-link to="/my/schedules" class="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <span class="font-medium text-gray-700">면접 일정</span>
-          </router-link>
         </div>
       </div>
 
