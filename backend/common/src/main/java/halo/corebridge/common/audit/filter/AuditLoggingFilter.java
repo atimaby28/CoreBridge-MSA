@@ -11,6 +11,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
@@ -31,7 +33,7 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
     private final AuditClient auditClient;
     private final AuditEventTypeResolver eventTypeResolver;
 
-    @Value("${audit.service-name:unknown}")
+    @Value("${spring.application.name:unknown}")
     private String serviceName;
 
     @Value("${audit.enabled:true}")
@@ -105,8 +107,18 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
             long executionTime,
             String errorMessage
     ) {
-        Long userId = extractUserId(request);
-        String userEmail = extractUserEmail(request);
+        // SecurityContext에서 사용자 정보 추출
+        Long userId = extractUserIdFromSecurityContext();
+        String userEmail = extractUserEmailFromSecurityContext();
+
+        // SecurityContext에 없으면 헤더에서 추출 (API Gateway 등에서 전달된 경우)
+        if (userId == null) {
+            userId = extractUserIdFromHeader(request);
+        }
+        if (userEmail == null) {
+            userEmail = extractUserEmailFromHeader(request);
+        }
+
         String requestBody = extractRequestBody(request);
 
         AuditEventType eventType = eventTypeResolver.resolve(
@@ -131,7 +143,75 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
                 .build();
     }
 
-    private Long extractUserId(HttpServletRequest request) {
+    /**
+     * SecurityContext에서 사용자 ID 추출
+     */
+    private Long extractUserIdFromSecurityContext() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()
+                && !"anonymousUser".equals(authentication.getPrincipal())) {
+            Object principal = authentication.getPrincipal();
+
+            // Principal이 Long 타입인 경우 (JWT에서 userId를 principal로 설정한 경우)
+            if (principal instanceof Long) {
+                return (Long) principal;
+            }
+
+            // Principal이 String 타입인 경우 (userId를 문자열로 저장한 경우)
+            if (principal instanceof String) {
+                try {
+                    return Long.parseLong((String) principal);
+                } catch (NumberFormatException e) {
+                    // email이나 username인 경우 무시
+                }
+            }
+
+            // Credentials에 userId가 있는 경우
+            Object credentials = authentication.getCredentials();
+            if (credentials instanceof Long) {
+                return (Long) credentials;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * SecurityContext에서 사용자 이메일 추출
+     */
+    private String extractUserEmailFromSecurityContext() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()
+                && !"anonymousUser".equals(authentication.getPrincipal())) {
+
+            // Credentials에서 email 추출 (JwtAuthenticationFilter에서 설정)
+            Object credentials = authentication.getCredentials();
+            if (credentials instanceof String) {
+                String credStr = (String) credentials;
+                if (credStr.contains("@")) {
+                    return credStr;
+                }
+            }
+
+            // Principal이 email인 경우
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof String) {
+                String principalStr = (String) principal;
+                // 이메일 형식인지 간단히 체크
+                if (principalStr.contains("@")) {
+                    return principalStr;
+                }
+            }
+
+            // Name에서 추출 시도
+            String name = authentication.getName();
+            if (name != null && name.contains("@")) {
+                return name;
+            }
+        }
+        return null;
+    }
+
+    private Long extractUserIdFromHeader(HttpServletRequest request) {
         String userIdHeader = request.getHeader("X-User-Id");
         if (userIdHeader != null && !userIdHeader.isEmpty()) {
             try {
@@ -143,7 +223,7 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private String extractUserEmail(HttpServletRequest request) {
+    private String extractUserEmailFromHeader(HttpServletRequest request) {
         return request.getHeader("X-User-Email");
     }
 
