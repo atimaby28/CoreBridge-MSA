@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: admin-audit-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/admin_audit
+    username: root
+    password: qwer1234
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      idle-timeout: 30000
+      max-lifetime: 600000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 8013
+
+# 감사 로그 설정 (자기 자신 비활성화 - 무한루프 방지)
+audit:
+  enabled: false
+  service-name: admin-audit
+  service-url: http://localhost:8013
