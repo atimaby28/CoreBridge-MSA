@@ -5,9 +5,10 @@ import type { BaseResponse } from '@/types'
 const SERVICE_URLS: Record<string, string> = {
   user: import.meta.env.VITE_USER_API_URL || 'http://localhost:8081',
   audit: import.meta.env.VITE_AUDIT_API_URL || 'http://localhost:8013',
-  // TODO: 추가 서비스
-  // gateway: 'http://localhost:8080',
-  // jobposting: 'http://localhost:8082',
+  jobposting: import.meta.env.VITE_JOBPOSTING_API_URL || 'http://localhost:8002',
+  like: import.meta.env.VITE_LIKE_API_URL || 'http://localhost:8003',
+  view: import.meta.env.VITE_VIEW_API_URL || 'http://localhost:8004',
+  comment: import.meta.env.VITE_COMMENT_API_URL || 'http://localhost:8005',
 }
 
 // Axios 인스턴스 생성
@@ -78,6 +79,7 @@ function createApiInstance(serviceName: string): AxiosInstance {
 // 서비스별 API 인스턴스
 export const userApi = createApiInstance('user')
 export const auditApi = createApiInstance('audit')
-
-// TODO: 추가 서비스
-// export const jobpostingApi = createApiInstance('jobposting')
+export const jobpostingApi = createApiInstance('jobposting')
+export const likeApi = createApiInstance('like')
+export const viewApi = createApiInstance('view')
+export const commentApi = createApiInstance('comment')
