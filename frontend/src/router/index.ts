@@ -67,13 +67,13 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/company/jobpostings',
     name: 'CompanyJobpostings',
-    component: () => import('@/views/PlaceholderView.vue'),
+    component: () => import('@/views/jobposting/MyJobpostingListView.vue'),
     meta: { requiresAuth: true, requiresCompany: true },
   },
   {
     path: '/company/jobpostings/new',
     name: 'CompanyJobpostingNew',
-    component: () => import('@/views/PlaceholderView.vue'),
+    component: () => import('@/views/jobposting/JobpostingFormView.vue'),
     meta: { requiresAuth: true, requiresCompany: true },
   },
   {
@@ -101,8 +101,20 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/jobpostings',
     name: 'JobpostingList',
-    component: () => import('@/views/PlaceholderView.vue'),
-    meta: { requiresAuth: true },
+    component: () => import('@/views/jobposting/JobpostingListView.vue'),
+    meta: { requiresAuth: false },  // 비로그인도 조회 가능
+  },
+  {
+    path: '/jobpostings/:id',
+    name: 'JobpostingDetail',
+    component: () => import('@/views/jobposting/JobpostingDetailView.vue'),
+    meta: { requiresAuth: false },  // 비로그인도 조회 가능
+  },
+  {
+    path: '/jobpostings/:id/edit',
+    name: 'JobpostingEdit',
+    component: () => import('@/views/jobposting/JobpostingFormView.vue'),
+    meta: { requiresAuth: true },  // 인증 필요 (본인만 수정 가능)
   },
   {
     path: '/my/applications',
