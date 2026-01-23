@@ -1,14 +1,28 @@
 import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import type { BaseResponse } from '@/types'
 
-// 서비스별 baseURL (현재 User 서비스만 구현됨)
+// ============================================
+// 서비스별 포트 (CoreBridge MSA)
+// ============================================
+// user:              8001
+// jobposting:        8002
+// jobposting-comment: 8003
+// jobposting-view:   8004 (예정)
+// jobposting-like:   8005 (예정)
+// jobposting-hot:    8006 (예정)
+// jobposting-read:   8007 (예정)
+// admin-audit:       8013
+// ============================================
+
 const SERVICE_URLS: Record<string, string> = {
-  user: import.meta.env.VITE_USER_API_URL || 'http://localhost:8081',
-  audit: import.meta.env.VITE_AUDIT_API_URL || 'http://localhost:8013',
+  user: import.meta.env.VITE_USER_API_URL || 'http://localhost:8001',
   jobposting: import.meta.env.VITE_JOBPOSTING_API_URL || 'http://localhost:8002',
-  like: import.meta.env.VITE_LIKE_API_URL || 'http://localhost:8003',
+  comment: import.meta.env.VITE_COMMENT_API_URL || 'http://localhost:8003',
   view: import.meta.env.VITE_VIEW_API_URL || 'http://localhost:8004',
-  comment: import.meta.env.VITE_COMMENT_API_URL || 'http://localhost:8005',
+  like: import.meta.env.VITE_LIKE_API_URL || 'http://localhost:8005',
+  hot: import.meta.env.VITE_HOT_API_URL || 'http://localhost:8006',
+  read: import.meta.env.VITE_READ_API_URL || 'http://localhost:8007',
+  audit: import.meta.env.VITE_AUDIT_API_URL || 'http://localhost:8013',
 }
 
 // Axios 인스턴스 생성
@@ -78,8 +92,10 @@ function createApiInstance(serviceName: string): AxiosInstance {
 
 // 서비스별 API 인스턴스
 export const userApi = createApiInstance('user')
-export const auditApi = createApiInstance('audit')
 export const jobpostingApi = createApiInstance('jobposting')
-export const likeApi = createApiInstance('like')
-export const viewApi = createApiInstance('view')
 export const commentApi = createApiInstance('comment')
+export const viewApi = createApiInstance('view')
+export const likeApi = createApiInstance('like')
+export const hotApi = createApiInstance('hot')
+export const readApi = createApiInstance('read')
+export const auditApi = createApiInstance('audit')
