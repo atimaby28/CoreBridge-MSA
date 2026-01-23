@@ -176,16 +176,16 @@ export const useJobpostingStore = defineStore('jobposting', () => {
   // ============================================
   
   // 좋아요 토글
-  async function toggleLike(jobpostingId: number, userId: number): Promise<void> {
+  async function toggleLike(jobpostingId: number): Promise<void> {
     if (!currentJobposting.value) return
     
     try {
       if (currentJobposting.value.isLiked) {
-        await likeService.unlike(jobpostingId, userId)
+        await likeService.unlike(jobpostingId)
         currentJobposting.value.isLiked = false
         currentJobposting.value.likeCount--
       } else {
-        await likeService.like(jobpostingId, userId)
+        await likeService.like(jobpostingId)
         currentJobposting.value.isLiked = true
         currentJobposting.value.likeCount++
       }

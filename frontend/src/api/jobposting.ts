@@ -33,7 +33,7 @@ function createApiInstance(baseURL: string) {
     headers: {
       'Content-Type': 'application/json',
     },
-    withCredentials: true,  // Cookie 자동 전송
+    withCredentials: true,
   })
 
   instance.interceptors.response.use(
@@ -134,23 +134,27 @@ export const viewService = {
 }
 
 // ============================================
-// Like Service (8005 - 예정)
+// Like Service (8005)
 // ============================================
 export const likeService = {
-  async getLikeStatus(jobpostingId: number, userId: number): Promise<LikeResponse> {
-    return likeApi.get(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
+  // 좋아요 상태 조회 (인증 필요 - Cookie로 userId 전송)
+  async getLikeStatus(jobpostingId: number): Promise<LikeResponse> {
+    return likeApi.get(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}`)
   },
 
+  // 좋아요 수 조회 (인증 불필요)
   async getLikeCount(jobpostingId: number): Promise<number> {
     return likeApi.get(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/count`)
   },
 
-  async like(jobpostingId: number, userId: number): Promise<void> {
-    return likeApi.post(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
+  // 좋아요 (인증 필요)
+  async like(jobpostingId: number): Promise<void> {
+    return likeApi.post(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}`)
   },
 
-  async unlike(jobpostingId: number, userId: number): Promise<void> {
-    return likeApi.delete(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
+  // 좋아요 취소 (인증 필요)
+  async unlike(jobpostingId: number): Promise<void> {
+    return likeApi.delete(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}`)
   },
 }
 
@@ -200,7 +204,7 @@ export const jobpostingDetailService = {
     try {
       likeCount = await likeService.getLikeCount(jobpostingId)
       if (userId) {
-        const likeStatus = await likeService.getLikeStatus(jobpostingId, userId)
+        const likeStatus = await likeService.getLikeStatus(jobpostingId)
         isLiked = likeStatus.liked
       }
     } catch {

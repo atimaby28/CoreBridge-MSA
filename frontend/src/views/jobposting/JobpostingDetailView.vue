@@ -302,7 +302,7 @@ async function handleLike() {
   if (!isAuthenticated.value || !jobposting.value || !userId.value) return
   
   try {
-    await jobpostingStore.toggleLike(jobposting.value.jobpostingId, userId.value)
+    await jobpostingStore.toggleLike(jobposting.value.jobpostingId)
   } catch (e) {
     alert('좋아요 처리에 실패했습니다.')
   }
