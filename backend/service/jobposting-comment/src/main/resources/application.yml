@@ -1,0 +1,35 @@
+server:
+  port: 8003
+
+spring:
+  application:
+    name: jobposting-comment
+  datasource:
+    url: jdbc:postgresql://localhost:5432/jobposting_comment
+    username: root
+    password: qwer1234
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      idle-timeout: 30000
+      max-lifetime: 600000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+# JWT 설정 (User 서비스와 동일한 secret 사용해야 함)
+jwt:
+  secret: ${JWT_SECRET:corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}
+  access-token-expiration: 1800000   # 30분
+  refresh-token-expiration: 604800000 # 7일
+
+# 감사 로그 설정
+audit:
+  enabled: true
+  service-url: http://localhost:8013
