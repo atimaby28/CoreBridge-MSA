@@ -17,8 +17,4 @@ public interface JobpostingViewCountRepository extends JpaRepository<JobpostingV
     @Query("UPDATE JobpostingViewCount v SET v.viewCount = v.viewCount + 1 WHERE v.jobpostingId = :jobpostingId")
     int increase(@Param("jobpostingId") Long jobpostingId);
 
-    // 비관적 락으로 조회
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT v FROM JobpostingViewCount v WHERE v.jobpostingId = :jobpostingId")
-    Optional<JobpostingViewCount> findLockedByJobpostingId(@Param("jobpostingId") Long jobpostingId);
 }
