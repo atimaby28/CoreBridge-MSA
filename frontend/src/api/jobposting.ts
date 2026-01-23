@@ -14,7 +14,7 @@ import type {
 } from '@/types/jobposting'
 
 // ============================================
-// API Base URL (포트 맞춤)
+// API Base URL
 // ============================================
 const JOBPOSTING_API_URL = import.meta.env.VITE_JOBPOSTING_API_URL || 'http://localhost:8002'
 const COMMENT_API_URL = import.meta.env.VITE_COMMENT_API_URL || 'http://localhost:8003'
@@ -36,7 +36,6 @@ function createApiInstance(baseURL: string) {
     withCredentials: true,  // Cookie 자동 전송
   })
 
-  // 응답 인터셉터
   instance.interceptors.response.use(
     (response) => {
       const data = response.data as BaseResponse
@@ -65,39 +64,32 @@ const readApi = createApiInstance(READ_API_URL)
 // Jobposting Service (8002)
 // ============================================
 export const jobpostingService = {
-  // 채용공고 단건 조회
   async getById(jobpostingId: number): Promise<Jobposting> {
     return jobpostingApi.get(`/api/v1/jobpostings/${jobpostingId}`)
   },
 
-  // 채용공고 목록 조회 (페이징)
   async getList(boardId: number, page: number, pageSize: number): Promise<JobpostingPageResponse> {
     return jobpostingApi.get('/api/v1/jobpostings', {
       params: { boardId, page, pageSize },
     })
   },
 
-  // 작성자별 채용공고 조회
   async getByWriter(writerId: number): Promise<JobpostingListResponse> {
     return jobpostingApi.get(`/api/v1/jobpostings/writers/${writerId}`)
   },
 
-  // 내 채용공고 조회
   async getMyJobpostings(): Promise<JobpostingListResponse> {
     return jobpostingApi.get('/api/v1/jobpostings/me')
   },
 
-  // 채용공고 생성
   async create(request: JobpostingCreateRequest): Promise<Jobposting> {
     return jobpostingApi.post('/api/v1/jobpostings', request)
   },
 
-  // 채용공고 수정
   async update(jobpostingId: number, request: JobpostingUpdateRequest): Promise<Jobposting> {
     return jobpostingApi.put(`/api/v1/jobpostings/${jobpostingId}`, request)
   },
 
-  // 채용공고 삭제
   async delete(jobpostingId: number): Promise<void> {
     return jobpostingApi.delete(`/api/v1/jobpostings/${jobpostingId}`)
   },
@@ -107,39 +99,35 @@ export const jobpostingService = {
 // Comment Service (8003)
 // ============================================
 export const commentService = {
-  // 댓글 단건 조회
   async getById(commentId: number): Promise<Comment> {
     return commentApi.get(`/api/v1/comments/${commentId}`)
   },
 
-  // 댓글 목록 조회 (페이징)
   async getList(jobpostingId: number, page: number, pageSize: number): Promise<CommentPageResponse> {
     return commentApi.get('/api/v1/comments', {
       params: { jobpostingId, page, pageSize },
     })
   },
 
-  // 댓글 생성
   async create(request: CommentCreateRequest): Promise<Comment> {
     return commentApi.post('/api/v1/comments', request)
   },
 
-  // 댓글 삭제
   async delete(commentId: number): Promise<void> {
     return commentApi.delete(`/api/v1/comments/${commentId}`)
   },
 }
 
 // ============================================
-// View Service (8004 - 예정)
+// View Service (8004)
 // ============================================
 export const viewService = {
-  // 조회수 증가
-  async increaseViewCount(jobpostingId: number, userId: number): Promise<number> {
-    return viewApi.post(`/api/v1/jobposting-views/jobpostings/${jobpostingId}/users/${userId}`)
+  // 조회수 증가 (인증 필요 - Cookie로 userId 전송)
+  async increaseViewCount(jobpostingId: number): Promise<number> {
+    return viewApi.post(`/api/v1/jobposting-views/jobpostings/${jobpostingId}`)
   },
 
-  // 조회수 조회
+  // 조회수 조회 (인증 불필요)
   async getViewCount(jobpostingId: number): Promise<number> {
     return viewApi.get(`/api/v1/jobposting-views/jobpostings/${jobpostingId}/count`)
   },
@@ -149,22 +137,18 @@ export const viewService = {
 // Like Service (8005 - 예정)
 // ============================================
 export const likeService = {
-  // 좋아요 상태 조회
   async getLikeStatus(jobpostingId: number, userId: number): Promise<LikeResponse> {
     return likeApi.get(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
   },
 
-  // 좋아요 수 조회
   async getLikeCount(jobpostingId: number): Promise<number> {
     return likeApi.get(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/count`)
   },
 
-  // 좋아요
   async like(jobpostingId: number, userId: number): Promise<void> {
     return likeApi.post(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
   },
 
-  // 좋아요 취소
   async unlike(jobpostingId: number, userId: number): Promise<void> {
     return likeApi.delete(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
   },
@@ -174,12 +158,10 @@ export const likeService = {
 // Hot Service (8006 - 예정)
 // ============================================
 export const hotService = {
-  // 오늘의 인기 공고
   async getHotToday(): Promise<Jobposting[]> {
     return hotApi.get('/api/v1/hot-jobpostings/jobpostings/today')
   },
 
-  // 특정 날짜 인기 공고
   async getHotByDate(dateStr: string): Promise<Jobposting[]> {
     return hotApi.get(`/api/v1/hot-jobpostings/jobpostings/date/${dateStr}`)
   },
@@ -189,16 +171,14 @@ export const hotService = {
 // 통합 조회 (상세 페이지용)
 // ============================================
 export const jobpostingDetailService = {
-  // 채용공고 상세 조회 (조회수, 좋아요 수 포함)
   async getDetail(jobpostingId: number, userId?: number): Promise<JobpostingDetail> {
-    // 기본 정보 조회
     const jobposting = await jobpostingService.getById(jobpostingId)
 
     // 조회수 증가 및 조회 (로그인 시)
     let viewCount = 0
     if (userId) {
       try {
-        viewCount = await viewService.increaseViewCount(jobpostingId, userId)
+        viewCount = await viewService.increaseViewCount(jobpostingId)
       } catch {
         try {
           viewCount = await viewService.getViewCount(jobpostingId)
@@ -227,7 +207,7 @@ export const jobpostingDetailService = {
       likeCount = 0
     }
 
-    // 댓글 수 조회 (첫 페이지 조회로 count 획득)
+    // 댓글 수 조회
     let commentCount = 0
     try {
       const comments = await commentService.getList(jobpostingId, 1, 1)
