@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+# JWT 설정 (테스트용)
+jwt:
+  secret: test-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+# 감사 로그 비활성화 (테스트)
+audit:
+  enabled: false
+  service-url: http://localhost:8013
