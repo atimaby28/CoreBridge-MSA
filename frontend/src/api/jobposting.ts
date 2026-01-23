@@ -14,12 +14,14 @@ import type {
 } from '@/types/jobposting'
 
 // ============================================
-// API Base URL
+// API Base URL (포트 맞춤)
 // ============================================
 const JOBPOSTING_API_URL = import.meta.env.VITE_JOBPOSTING_API_URL || 'http://localhost:8002'
-const LIKE_API_URL = import.meta.env.VITE_LIKE_API_URL || 'http://localhost:8003'
+const COMMENT_API_URL = import.meta.env.VITE_COMMENT_API_URL || 'http://localhost:8003'
 const VIEW_API_URL = import.meta.env.VITE_VIEW_API_URL || 'http://localhost:8004'
-const COMMENT_API_URL = import.meta.env.VITE_COMMENT_API_URL || 'http://localhost:8005'
+const LIKE_API_URL = import.meta.env.VITE_LIKE_API_URL || 'http://localhost:8005'
+const HOT_API_URL = import.meta.env.VITE_HOT_API_URL || 'http://localhost:8006'
+const READ_API_URL = import.meta.env.VITE_READ_API_URL || 'http://localhost:8007'
 
 // ============================================
 // Axios 인스턴스 생성
@@ -53,12 +55,14 @@ function createApiInstance(baseURL: string) {
 }
 
 const jobpostingApi = createApiInstance(JOBPOSTING_API_URL)
-const likeApi = createApiInstance(LIKE_API_URL)
-const viewApi = createApiInstance(VIEW_API_URL)
 const commentApi = createApiInstance(COMMENT_API_URL)
+const viewApi = createApiInstance(VIEW_API_URL)
+const likeApi = createApiInstance(LIKE_API_URL)
+const hotApi = createApiInstance(HOT_API_URL)
+const readApi = createApiInstance(READ_API_URL)
 
 // ============================================
-// Jobposting Service
+// Jobposting Service (8002)
 // ============================================
 export const jobpostingService = {
   // 채용공고 단건 조회
@@ -100,47 +104,7 @@ export const jobpostingService = {
 }
 
 // ============================================
-// Like Service
-// ============================================
-export const likeService = {
-  // 좋아요 상태 조회
-  async getLikeStatus(jobpostingId: number, userId: number): Promise<LikeResponse> {
-    return likeApi.get(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
-  },
-
-  // 좋아요 수 조회
-  async getLikeCount(jobpostingId: number): Promise<number> {
-    return likeApi.get(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/count`)
-  },
-
-  // 좋아요
-  async like(jobpostingId: number, userId: number): Promise<void> {
-    return likeApi.post(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
-  },
-
-  // 좋아요 취소
-  async unlike(jobpostingId: number, userId: number): Promise<void> {
-    return likeApi.delete(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
-  },
-}
-
-// ============================================
-// View Service
-// ============================================
-export const viewService = {
-  // 조회수 증가
-  async increaseViewCount(jobpostingId: number, userId: number): Promise<number> {
-    return viewApi.post(`/api/v1/jobposting-views/jobpostings/${jobpostingId}/users/${userId}`)
-  },
-
-  // 조회수 조회
-  async getViewCount(jobpostingId: number): Promise<number> {
-    return viewApi.get(`/api/v1/jobposting-views/jobpostings/${jobpostingId}/count`)
-  },
-}
-
-// ============================================
-// Comment Service
+// Comment Service (8003)
 // ============================================
 export const commentService = {
   // 댓글 단건 조회
@@ -167,6 +131,61 @@ export const commentService = {
 }
 
 // ============================================
+// View Service (8004 - 예정)
+// ============================================
+export const viewService = {
+  // 조회수 증가
+  async increaseViewCount(jobpostingId: number, userId: number): Promise<number> {
+    return viewApi.post(`/api/v1/jobposting-views/jobpostings/${jobpostingId}/users/${userId}`)
+  },
+
+  // 조회수 조회
+  async getViewCount(jobpostingId: number): Promise<number> {
+    return viewApi.get(`/api/v1/jobposting-views/jobpostings/${jobpostingId}/count`)
+  },
+}
+
+// ============================================
+// Like Service (8005 - 예정)
+// ============================================
+export const likeService = {
+  // 좋아요 상태 조회
+  async getLikeStatus(jobpostingId: number, userId: number): Promise<LikeResponse> {
+    return likeApi.get(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
+  },
+
+  // 좋아요 수 조회
+  async getLikeCount(jobpostingId: number): Promise<number> {
+    return likeApi.get(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/count`)
+  },
+
+  // 좋아요
+  async like(jobpostingId: number, userId: number): Promise<void> {
+    return likeApi.post(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
+  },
+
+  // 좋아요 취소
+  async unlike(jobpostingId: number, userId: number): Promise<void> {
+    return likeApi.delete(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}/users/${userId}`)
+  },
+}
+
+// ============================================
+// Hot Service (8006 - 예정)
+// ============================================
+export const hotService = {
+  // 오늘의 인기 공고
+  async getHotToday(): Promise<Jobposting[]> {
+    return hotApi.get('/api/v1/hot-jobpostings/jobpostings/today')
+  },
+
+  // 특정 날짜 인기 공고
+  async getHotByDate(dateStr: string): Promise<Jobposting[]> {
+    return hotApi.get(`/api/v1/hot-jobpostings/jobpostings/date/${dateStr}`)
+  },
+}
+
+// ============================================
 // 통합 조회 (상세 페이지용)
 // ============================================
 export const jobpostingDetailService = {
@@ -181,7 +200,11 @@ export const jobpostingDetailService = {
       try {
         viewCount = await viewService.increaseViewCount(jobpostingId, userId)
       } catch {
-        viewCount = await viewService.getViewCount(jobpostingId)
+        try {
+          viewCount = await viewService.getViewCount(jobpostingId)
+        } catch {
+          viewCount = 0
+        }
       }
     } else {
       try {
