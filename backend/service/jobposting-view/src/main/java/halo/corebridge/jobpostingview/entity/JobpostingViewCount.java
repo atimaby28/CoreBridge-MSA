@@ -26,7 +26,4 @@ public class JobpostingViewCount extends BaseTimeEntity {
         return entity;
     }
 
-    public void increase() {
-        this.viewCount++;
-    }
 }
