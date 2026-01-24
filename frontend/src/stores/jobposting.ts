@@ -1,22 +1,21 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { jobpostingService, jobpostingDetailService, likeService, commentService } from '@/api/jobposting'
+import { jobpostingService, readService, likeService, viewService, commentService } from '@/api/jobposting'
 import type {
   Jobposting,
   JobpostingDetail,
   JobpostingCreateRequest,
   JobpostingUpdateRequest,
+  JobpostingReadResponse,
   Comment,
   CommentCreateRequest,
-  Board,
-  DEFAULT_BOARDS,
 } from '@/types/jobposting'
 
 export const useJobpostingStore = defineStore('jobposting', () => {
   // ============================================
   // State
   // ============================================
-  const jobpostings = ref<Jobposting[]>([])
+  const jobpostings = ref<JobpostingReadResponse[]>([])
   const currentJobposting = ref<JobpostingDetail | null>(null)
   const myJobpostings = ref<Jobposting[]>([])
   const comments = ref<Comment[]>([])
@@ -50,7 +49,7 @@ export const useJobpostingStore = defineStore('jobposting', () => {
   // Actions - Jobposting
   // ============================================
   
-  // 채용공고 목록 조회
+  // 채용공고 목록 조회 (통계 포함 - Read 서비스)
   async function fetchJobpostings(boardId?: number, page?: number): Promise<void> {
     loading.value = true
     error.value = null
@@ -59,7 +58,7 @@ export const useJobpostingStore = defineStore('jobposting', () => {
       if (boardId !== undefined) currentBoardId.value = boardId
       if (page !== undefined) currentPage.value = page
       
-      const response = await jobpostingService.getList(
+      const response = await readService.getList(
         currentBoardId.value,
         currentPage.value,
         pageSize.value
@@ -75,13 +74,42 @@ export const useJobpostingStore = defineStore('jobposting', () => {
     }
   }
 
-  // 채용공고 상세 조회
-  async function fetchJobposting(jobpostingId: number, userId?: number): Promise<JobpostingDetail> {
+  // 채용공고 상세 조회 (Read 서비스 + 좋아요 상태 + 조회수 증가)
+  async function fetchJobposting(jobpostingId: number, isLoggedIn: boolean = false): Promise<JobpostingDetail> {
     loading.value = true
     error.value = null
     
     try {
-      const detail = await jobpostingDetailService.getDetail(jobpostingId, userId)
+      // 1. Read 서비스로 기본 정보 + 통계 조회
+      const readResponse = await readService.getById(jobpostingId)
+      
+      // 2. 로그인한 경우 조회수 증가
+      if (isLoggedIn) {
+        try {
+          await viewService.increaseViewCount(jobpostingId)
+          readResponse.viewCount++  // 증가 반영
+        } catch {
+          // 조회수 증가 실패해도 무시
+        }
+      }
+      
+      // 3. 좋아요 상태 조회 (로그인한 경우만)
+      let isLiked = false
+      if (isLoggedIn) {
+        try {
+          const likeStatus = await likeService.getLikeStatus(jobpostingId)
+          isLiked = likeStatus.liked
+        } catch {
+          // 좋아요 상태 조회 실패해도 무시
+        }
+      }
+      
+      // 4. JobpostingDetail 구성
+      const detail: JobpostingDetail = {
+        ...readResponse,
+        isLiked,
+      }
+      
       currentJobposting.value = detail
       return detail
     } catch (e) {
