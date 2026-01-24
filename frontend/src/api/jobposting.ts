@@ -2,11 +2,12 @@ import axios from 'axios'
 import type { BaseResponse } from '@/types/common'
 import type {
   Jobposting,
-  JobpostingDetail,
   JobpostingCreateRequest,
   JobpostingUpdateRequest,
   JobpostingPageResponse,
   JobpostingListResponse,
+  JobpostingReadResponse,
+  JobpostingReadPageResponse,
   LikeResponse,
   Comment,
   CommentCreateRequest,
@@ -61,7 +62,7 @@ const hotApi = createApiInstance(HOT_API_URL)
 const readApi = createApiInstance(READ_API_URL)
 
 // ============================================
-// Jobposting Service (8002)
+// Jobposting Service (8002) - CRUD
 // ============================================
 export const jobpostingService = {
   async getById(jobpostingId: number): Promise<Jobposting> {
@@ -96,6 +97,23 @@ export const jobpostingService = {
 }
 
 // ============================================
+// Read Service (8007) - 통합 조회 (BFF)
+// ============================================
+export const readService = {
+  // 단일 채용공고 조회 (통계 포함)
+  async getById(jobpostingId: number): Promise<JobpostingReadResponse> {
+    return readApi.get(`/api/v1/jobposting-read/${jobpostingId}`)
+  },
+
+  // 채용공고 목록 조회 (통계 포함)
+  async getList(boardId: number, page: number, pageSize: number): Promise<JobpostingReadPageResponse> {
+    return readApi.get('/api/v1/jobposting-read', {
+      params: { boardId, page, pageSize },
+    })
+  },
+}
+
+// ============================================
 // Comment Service (8003)
 // ============================================
 export const commentService = {
@@ -122,7 +140,7 @@ export const commentService = {
 // View Service (8004)
 // ============================================
 export const viewService = {
-  // 조회수 증가 (인증 필요 - Cookie로 userId 전송)
+  // 조회수 증가 (인증 필요)
   async increaseViewCount(jobpostingId: number): Promise<number> {
     return viewApi.post(`/api/v1/jobposting-views/jobpostings/${jobpostingId}`)
   },
@@ -137,7 +155,7 @@ export const viewService = {
 // Like Service (8005)
 // ============================================
 export const likeService = {
-  // 좋아요 상태 조회 (인증 필요 - Cookie로 userId 전송)
+  // 좋아요 상태 조회 (인증 필요)
   async getLikeStatus(jobpostingId: number): Promise<LikeResponse> {
     return likeApi.get(`/api/v1/jobposting-likes/jobpostings/${jobpostingId}`)
   },
@@ -163,69 +181,10 @@ export const likeService = {
 // ============================================
 export const hotService = {
   async getHotToday(): Promise<Jobposting[]> {
-    return hotApi.get('/api/v1/hot-jobpostings/jobpostings/today')
+    return hotApi.get('/api/v1/hot-jobpostings/today')
   },
 
   async getHotByDate(dateStr: string): Promise<Jobposting[]> {
-    return hotApi.get(`/api/v1/hot-jobpostings/jobpostings/date/${dateStr}`)
-  },
-}
-
-// ============================================
-// 통합 조회 (상세 페이지용)
-// ============================================
-export const jobpostingDetailService = {
-  async getDetail(jobpostingId: number, userId?: number): Promise<JobpostingDetail> {
-    const jobposting = await jobpostingService.getById(jobpostingId)
-
-    // 조회수 증가 및 조회 (로그인 시)
-    let viewCount = 0
-    if (userId) {
-      try {
-        viewCount = await viewService.increaseViewCount(jobpostingId)
-      } catch {
-        try {
-          viewCount = await viewService.getViewCount(jobpostingId)
-        } catch {
-          viewCount = 0
-        }
-      }
-    } else {
-      try {
-        viewCount = await viewService.getViewCount(jobpostingId)
-      } catch {
-        viewCount = 0
-      }
-    }
-
-    // 좋아요 수 조회
-    let likeCount = 0
-    let isLiked = false
-    try {
-      likeCount = await likeService.getLikeCount(jobpostingId)
-      if (userId) {
-        const likeStatus = await likeService.getLikeStatus(jobpostingId)
-        isLiked = likeStatus.liked
-      }
-    } catch {
-      likeCount = 0
-    }
-
-    // 댓글 수 조회
-    let commentCount = 0
-    try {
-      const comments = await commentService.getList(jobpostingId, 1, 1)
-      commentCount = comments.commentCount
-    } catch {
-      commentCount = 0
-    }
-
-    return {
-      ...jobposting,
-      viewCount,
-      likeCount,
-      commentCount,
-      isLiked,
-    }
+    return hotApi.get(`/api/v1/hot-jobpostings/date/${dateStr}`)
   },
 }

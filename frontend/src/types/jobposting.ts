@@ -13,12 +13,30 @@ export interface Jobposting {
   updatedAt: string
 }
 
-// 채용공고 상세 정보 (조회수, 좋아요, 댓글 수 포함)
-export interface JobpostingDetail extends Jobposting {
+// Read 서비스 응답 (통계 + 닉네임 포함)
+export interface JobpostingReadResponse {
+  jobpostingId: number
+  title: string
+  content: string
+  boardId: number
+  userId: number
+  nickname: string
   viewCount: number
   likeCount: number
   commentCount: number
-  isLiked?: boolean  // 현재 사용자가 좋아요 했는지
+  createdAt: string
+  updatedAt: string
+}
+
+// 채용공고 상세 정보 (Read 응답 + 좋아요 상태)
+export interface JobpostingDetail extends JobpostingReadResponse {
+  isLiked: boolean
+}
+
+// Read 서비스 페이지 응답
+export interface JobpostingReadPageResponse {
+  jobpostings: JobpostingReadResponse[]
+  jobpostingCount: number
 }
 
 // 채용공고 생성 요청

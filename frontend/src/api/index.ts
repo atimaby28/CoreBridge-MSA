@@ -7,10 +7,10 @@ import type { BaseResponse } from '@/types'
 // user:              8001
 // jobposting:        8002
 // jobposting-comment: 8003
-// jobposting-view:   8004 (예정)
-// jobposting-like:   8005 (예정)
+// jobposting-view:   8004
+// jobposting-like:   8005
 // jobposting-hot:    8006 (예정)
-// jobposting-read:   8007 (예정)
+// jobposting-read:   8007
 // admin-audit:       8013
 // ============================================
 
