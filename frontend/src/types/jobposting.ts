@@ -127,3 +127,17 @@ export interface CommentPageResponse {
   comments: Comment[]
   commentCount: number
 }
+
+// ============================================
+// 인기 공고 (Hot Jobposting)
+// ============================================
+
+export interface HotJobpostingResponse {
+  jobpostingId: number
+  title: string
+  boardId: number
+  likeCount: number
+  commentCount: number
+  viewCount: number
+  score: number
+}
