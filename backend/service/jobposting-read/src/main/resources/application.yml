@@ -1,0 +1,39 @@
+server:
+  port: 8007
+
+spring:
+  application:
+    name: jobposting-read-service
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+# Client URLs
+client:
+  jobposting:
+    url: http://localhost:8002
+  user:
+    url: http://localhost:8001
+  comment:
+    url: http://localhost:8003
+  view:
+    url: http://localhost:8004
+  like:
+    url: http://localhost:8005
+
+# Audit 설정
+audit:
+  enabled: true
+  service-name: jobposting-read
+  service-url: http://localhost:8013
+
+logging:
+  level:
+    halo.corebridge: DEBUG
