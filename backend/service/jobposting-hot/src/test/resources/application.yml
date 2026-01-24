@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: jobposting-hot-service-test
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8006
+
+jwt:
+  secret: test-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+client:
+  jobposting:
+    url: http://localhost:8002
+  comment:
+    url: http://localhost:8003
+  view:
+    url: http://localhost:8004
+  like:
+    url: http://localhost:8005
+
+audit:
+  enabled: false
+  service-name: jobposting-hot
+  service-url: http://localhost:8013
