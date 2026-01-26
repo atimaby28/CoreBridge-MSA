@@ -47,7 +47,8 @@ public enum BaseResponseStatus {
 
     // ========== Schedule Error (8xxx) ==========
     SCHEDULE_NOT_FOUND(false, 8000, "일정을 찾을 수 없습니다."),
-    SCHEDULE_CONFLICT(false, 8001, "일정이 중복됩니다.");
+    SCHEDULE_CONFLICT(false, 8001, "일정이 중복됩니다."),
+    INVALID_TIME_RANGE(false, 8002, "종료 시간이 시작 시간보다 빠릅니다.");
 
     private final boolean success;
     private final int code;

@@ -1,0 +1,33 @@
+server:
+  port: 8012
+
+spring:
+  application:
+    name: schedule-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/schedule
+    username: root
+    password: qwer1234
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+jwt:
+  secret: ${JWT_SECRET:corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}
+
+notification:
+  service:
+    url: http://localhost:8011
+
+logging:
+  level:
+    halo.corebridge.schedule: DEBUG
+    org.hibernate.SQL: DEBUG
