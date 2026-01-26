@@ -131,7 +131,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/my/resume',
     name: 'MyResume',
-    component: () => import('@/views/PlaceholderView.vue'),
+    component: () => import('@/views/resume/MyResumeListView.vue'),
     meta: { requiresAuth: true },
   },
 

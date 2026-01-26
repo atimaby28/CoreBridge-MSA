@@ -9,8 +9,13 @@ import type { BaseResponse } from '@/types'
 // jobposting-comment: 8003
 // jobposting-view:   8004
 // jobposting-like:   8005
-// jobposting-hot:    8006 (예정)
+// jobposting-hot:    8006
 // jobposting-read:   8007
+// resume:            8008
+// apply:             8009
+// schedule:          8010 (예정)
+// notification:      8011 (예정)
+// batch:             8012 (예정)
 // admin-audit:       8013
 // ============================================
 
@@ -22,6 +27,7 @@ const SERVICE_URLS: Record<string, string> = {
   like: import.meta.env.VITE_LIKE_API_URL || 'http://localhost:8005',
   hot: import.meta.env.VITE_HOT_API_URL || 'http://localhost:8006',
   read: import.meta.env.VITE_READ_API_URL || 'http://localhost:8007',
+  resume: import.meta.env.VITE_RESUME_API_URL || 'http://localhost:8008',
   apply: import.meta.env.VITE_APPLY_API_URL || 'http://localhost:8009',
   audit: import.meta.env.VITE_AUDIT_API_URL || 'http://localhost:8013',
 }
@@ -99,5 +105,6 @@ export const viewApi = createApiInstance('view')
 export const likeApi = createApiInstance('like')
 export const hotApi = createApiInstance('hot')
 export const readApi = createApiInstance('read')
+export const resumeApi = createApiInstance('resume')
 export const applyApi = createApiInstance('apply')
 export const auditApi = createApiInstance('audit')
