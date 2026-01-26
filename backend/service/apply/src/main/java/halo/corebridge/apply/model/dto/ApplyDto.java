@@ -78,7 +78,7 @@ public class ApplyDto {
         private String coverLetter;
         private String memo;
         private LocalDateTime appliedAt;
-        
+
         // Process 정보 (State Machine)
         private Long processId;
         private ProcessStep currentStep;
@@ -105,7 +105,7 @@ public class ApplyDto {
                     .currentStep(process.getCurrentStep())
                     .currentStepName(process.getCurrentStep().getDisplayName())
                     .previousStep(process.getPreviousStep())
-                    .previousStepName(process.getPreviousStep() != null 
+                    .previousStepName(process.getPreviousStep() != null
                             ? process.getPreviousStep().getDisplayName() : null)
                     .allowedNextSteps(process.getCurrentStep().getAllowedNextSteps())
                     .completed(process.isCompleted())

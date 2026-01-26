@@ -4,7 +4,7 @@ import java.util.Set;
 
 /**
  * 채용 프로세스 단계 (State Machine)
- * 
+ *
  * 각 상태에서 허용되는 다음 상태를 정의하여
  * 잘못된 상태 전이를 방지합니다.
  */
@@ -75,9 +75,9 @@ public enum ProcessStep {
      * 탈락 상태인지 확인
      */
     public boolean isFail() {
-        return this == DOCUMENT_FAIL || this == CODING_FAIL || 
-               this == INTERVIEW_1_FAIL || this == INTERVIEW_2_FAIL || 
-               this == FINAL_FAIL;
+        return this == DOCUMENT_FAIL || this == CODING_FAIL ||
+                this == INTERVIEW_1_FAIL || this == INTERVIEW_2_FAIL ||
+                this == FINAL_FAIL;
     }
 
     /**
