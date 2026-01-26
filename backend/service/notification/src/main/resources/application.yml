@@ -1,0 +1,35 @@
+server:
+  port: 8011
+
+spring:
+  application:
+    name: notification-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/notification
+    username: root
+    password: qwer1234
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      idle-timeout: 30000
+      max-lifetime: 600000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# JWT 설정
+jwt:
+  secret: corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+logging:
+  level:
+    root: INFO
+    halo.corebridge.notification: DEBUG
