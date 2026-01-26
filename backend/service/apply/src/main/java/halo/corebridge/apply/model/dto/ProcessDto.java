@@ -65,7 +65,7 @@ public class ProcessDto {
                     .currentStep(process.getCurrentStep())
                     .currentStepName(process.getCurrentStep().getDisplayName())
                     .previousStep(process.getPreviousStep())
-                    .previousStepName(process.getPreviousStep() != null 
+                    .previousStepName(process.getPreviousStep() != null
                             ? process.getPreviousStep().getDisplayName() : null)
                     .allowedNextSteps(process.getCurrentStep().getAllowedNextSteps())
                     .completed(process.isCompleted())
@@ -113,7 +113,7 @@ public class ProcessDto {
                     .processId(history.getProcessId())
                     .applyId(history.getApplyId())
                     .fromStep(history.getFromStep())
-                    .fromStepName(history.getFromStep() != null 
+                    .fromStepName(history.getFromStep() != null
                             ? history.getFromStep().getDisplayName() : null)
                     .toStep(history.getToStep())
                     .toStepName(history.getToStep().getDisplayName())

@@ -134,6 +134,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/resume/MyResumeListView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/notifications',
+    name: 'Notifications',
+    component: () => import('@/views/notification/NotificationListView.vue'),
+    meta: { requiresAuth: true },
+  },
 
   // 404
   {

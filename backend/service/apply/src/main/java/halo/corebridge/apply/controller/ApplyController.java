@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * 지원 API
- * 
+ *
  * 채용 공고 지원 관련 API를 제공합니다.
  * 상태 전이는 ProcessController에서 처리합니다.
  */

@@ -1,5 +1,6 @@
 package halo.corebridge.apply.service;
 
+import halo.corebridge.apply.client.NotificationClient;
 import halo.corebridge.apply.model.dto.ProcessDto;
 import halo.corebridge.apply.model.entity.ProcessHistory;
 import halo.corebridge.apply.model.entity.RecruitmentProcess;
@@ -18,7 +19,7 @@ import java.util.List;
 
 /**
  * 채용 프로세스 서비스 (State Machine)
- * 
+ *
  * 지원자의 채용 프로세스 상태를 관리합니다.
  * State Machine 패턴을 적용하여 허용된 상태 전이만 가능하도록 합니다.
  */
@@ -29,6 +30,7 @@ public class ProcessService {
     private final Snowflake snowflake = new Snowflake();
     private final RecruitmentProcessRepository processRepository;
     private final ProcessHistoryRepository historyRepository;
+    private final NotificationClient notificationClient;
 
     // ============================================
     // 프로세스 생성 (ApplyService에서 내부 호출)
@@ -70,7 +72,7 @@ public class ProcessService {
 
     /**
      * 상태 전이 (규칙 검증 후 전이)
-     * 
+     *
      * State Machine의 핵심 메서드입니다.
      * ProcessStep enum에 정의된 규칙에 따라 허용된 전이만 수행합니다.
      */
@@ -97,6 +99,14 @@ public class ProcessService {
                 request.getNote()
         );
         historyRepository.save(history);
+
+        // 알림 전송 (비동기)
+        notificationClient.sendProcessNotification(
+                process.getUserId(),
+                toStep,
+                process.getApplyId(),
+                process.getJobpostingId()
+        );
 
         return ProcessDto.ProcessResponse.from(process);
     }

@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * 채용 프로세스 API (State Machine)
- * 
+ *
  * 지원자의 채용 프로세스 상태 조회 및 전이를 담당합니다.
  */
 @RestController
@@ -128,7 +128,7 @@ public class ProcessController {
 
     /**
      * 모든 단계 정보 조회 (프론트엔드용)
-     * 
+     *
      * 각 단계별 허용된 전이 정보를 포함합니다.
      */
     @GetMapping("/steps")

@@ -17,7 +17,7 @@ import java.util.List;
 
 /**
  * 지원 서비스
- * 
+ *
  * 채용 공고 지원 관련 비즈니스 로직을 처리합니다.
  * 지원 시 RecruitmentProcess도 함께 생성하여 하나의 트랜잭션으로 관리합니다.
  */
@@ -36,7 +36,7 @@ public class ApplyService {
 
     /**
      * 지원하기
-     * 
+     *
      * Apply와 RecruitmentProcess를 함께 생성합니다.
      * 하나의 트랜잭션으로 처리되어 데이터 일관성을 보장합니다.
      */
@@ -100,12 +100,12 @@ public class ApplyService {
     @Transactional(readOnly = true)
     public ApplyDto.ApplyPageResponse getMyApplies(Long userId) {
         List<Apply> applies = applyRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        
+
         List<ApplyDto.ApplyDetailResponse> responses = applies.stream()
                 .map(apply -> {
                     RecruitmentProcess process = processRepository.findByApplyId(apply.getApplyId())
                             .orElse(null);
-                    return process != null 
+                    return process != null
                             ? ApplyDto.ApplyDetailResponse.from(apply, process)
                             : null;
                 })
@@ -146,7 +146,7 @@ public class ApplyService {
                 .map(apply -> {
                     RecruitmentProcess process = processRepository.findByApplyId(apply.getApplyId())
                             .orElse(null);
-                    return process != null 
+                    return process != null
                             ? ApplyDto.ApplyDetailResponse.from(apply, process)
                             : null;
                 })
@@ -170,7 +170,7 @@ public class ApplyService {
                 .map(process -> {
                     Apply apply = applyRepository.findById(process.getApplyId())
                             .orElse(null);
-                    return apply != null 
+                    return apply != null
                             ? ApplyDto.ApplyDetailResponse.from(apply, process)
                             : null;
                 })

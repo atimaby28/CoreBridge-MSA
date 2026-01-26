@@ -1,11 +1,11 @@
 server:
-  port: 8009
+  port: 8011
 
 spring:
   application:
-    name: apply-service
+    name: notification-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/apply
+    url: jdbc:postgresql://localhost:5432/notification
     username: root
     password: qwer1234
     driver-class-name: org.postgresql.Driver
@@ -26,15 +26,10 @@ spring:
 # JWT 설정
 jwt:
   secret: corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256
-  access-token-expiration: 1800000    # 30분 (ms)
-  refresh-token-expiration: 604800000 # 7일 (ms)
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
 
-# 감사 로그 설정
-audit:
-  enabled: true
-  service-name: apply
-  service-url: http://localhost:8013
-# 알림 서비스 설정
-notification:
-  service:
-    url: http://localhost:8011
+logging:
+  level:
+    root: INFO
+    halo.corebridge.notification: DEBUG

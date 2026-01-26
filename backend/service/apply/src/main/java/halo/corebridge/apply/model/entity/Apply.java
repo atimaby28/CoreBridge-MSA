@@ -10,14 +10,14 @@ import java.time.LocalDateTime;
 
 /**
  * 지원 정보
- * 
+ *
  * 채용 공고에 대한 지원 기록을 저장합니다.
  * 상태(진행 단계)는 RecruitmentProcess에서 관리합니다.
  */
 @Entity
 @Table(
-    name = "apply",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"jobpostingId", "userId"})
+        name = "apply",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"jobpostingId", "userId"})
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -28,10 +28,10 @@ public class Apply extends BaseTimeEntity {
 
     @Column(nullable = false)
     private Long jobpostingId;  // 지원한 공고
-    
+
     @Column(nullable = false)
     private Long userId;        // 지원자
-    
+
     private Long resumeId;      // 제출한 이력서
 
     private String memo;        // 기업 메모 (내부용)
