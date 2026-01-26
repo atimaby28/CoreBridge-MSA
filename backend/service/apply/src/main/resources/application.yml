@@ -1,0 +1,36 @@
+server:
+  port: 8009
+
+spring:
+  application:
+    name: apply-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/apply
+    username: root
+    password: qwer1234
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      idle-timeout: 30000
+      max-lifetime: 600000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# JWT 설정
+jwt:
+  secret: corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256
+  access-token-expiration: 1800000    # 30분 (ms)
+  refresh-token-expiration: 604800000 # 7일 (ms)
+
+# 감사 로그 설정
+audit:
+  enabled: true
+  service-name: apply
+  service-url: http://localhost:8013

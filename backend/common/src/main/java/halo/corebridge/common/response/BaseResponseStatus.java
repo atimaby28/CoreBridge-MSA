@@ -34,10 +34,13 @@ public enum BaseResponseStatus {
     APPLICATION_NOT_FOUND(false, 5000, "지원서를 찾을 수 없습니다."),
     ALREADY_APPLIED(false, 5001, "이미 지원한 공고입니다."),
     APPLICATION_CLOSED(false, 5002, "지원이 마감되었습니다."),
+    CANNOT_CANCEL_IN_PROGRESS(false, 5003, "진행 중인 전형은 취소할 수 없습니다."),
+    ACCESS_DENIED(false, 5004, "접근 권한이 없습니다."),
 
     // ========== Process Error (6xxx) ==========
     PROCESS_NOT_FOUND(false, 6000, "채용 프로세스를 찾을 수 없습니다."),
     INVALID_STATUS_TRANSITION(false, 6001, "유효하지 않은 상태 전이입니다."),
+    PROCESS_ALREADY_COMPLETED(false, 6002, "이미 종료된 프로세스입니다."),
 
     // ========== Resume Error (7xxx) ==========
     RESUME_NOT_FOUND(false, 7000, "이력서를 찾을 수 없습니다."),
