@@ -135,7 +135,7 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48">지원자</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">지원일</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">현재 단계</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-40">상태 변경</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48">관리</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
@@ -170,37 +170,48 @@
                   {{ applicant.passed ? '✅ 최종합격' : '❌ 불합격' }}
                 </span>
                 <!-- 드롭다운 -->
-                <div v-else class="dropdown-container">
+                <div v-else class="flex items-center gap-2">
+                  <!-- 일정 잡기 버튼 -->
                   <button
-                    @click.stop="toggleDropdown(applicant.applyId, $event)"
-                    class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 flex items-center gap-1"
+                    @click.stop="openScheduleModal(applicant)"
+                    class="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100"
+                    title="일정 잡기"
                   >
-                    다음 단계
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                    </svg>
+                    📅
                   </button>
-                  <!-- 드롭다운 메뉴 (Portal처럼 body에 고정) -->
-                  <Teleport to="body">
-                    <div
-                      v-if="openDropdownId === applicant.applyId"
-                      class="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-[9999]"
-                      :style="dropdownStyle"
+                  <!-- 상태 변경 드롭다운 -->
+                  <div class="dropdown-container">
+                    <button
+                      @click.stop="toggleDropdown(applicant.applyId, $event)"
+                      class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 flex items-center gap-1"
                     >
-                      <button
-                        v-for="nextStep in applicant.allowedNextSteps"
-                        :key="nextStep"
-                        @click="handleTransition(applicant, nextStep)"
-                        :class="[
-                          'w-full px-4 py-2 text-left text-sm hover:bg-gray-100',
-                          isPassStep(nextStep) ? 'text-green-700' :
-                          isFailStep(nextStep) ? 'text-red-700' : 'text-gray-700'
-                        ]"
+                      다음 단계
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                      </svg>
+                    </button>
+                    <!-- 드롭다운 메뉴 (Portal처럼 body에 고정) -->
+                    <Teleport to="body">
+                      <div
+                        v-if="openDropdownId === applicant.applyId"
+                        class="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-[9999]"
+                        :style="dropdownStyle"
                       >
-                        {{ getStepName(nextStep) }}
-                      </button>
-                    </div>
-                  </Teleport>
+                        <button
+                          v-for="nextStep in applicant.allowedNextSteps"
+                          :key="nextStep"
+                          @click="handleTransition(applicant, nextStep)"
+                          :class="[
+                            'w-full px-4 py-2 text-left text-sm hover:bg-gray-100',
+                            isPassStep(nextStep) ? 'text-green-700' :
+                            isFailStep(nextStep) ? 'text-red-700' : 'text-gray-700'
+                          ]"
+                        >
+                          {{ getStepName(nextStep) }}
+                        </button>
+                      </div>
+                    </Teleport>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -249,12 +260,19 @@
               <p class="text-xs text-gray-500">{{ formatDate(applicant.appliedAt) }}</p>
               
               <!-- 칸반 카드 드롭다운 -->
-              <div v-if="!applicant.completed" class="mt-2">
+              <div v-if="!applicant.completed" class="mt-2 flex gap-1">
+                <button
+                  @click.stop="openScheduleModal(applicant)"
+                  class="flex-1 px-2 py-1 bg-green-50 text-green-600 rounded text-xs hover:bg-green-100"
+                  title="일정 잡기"
+                >
+                  📅 일정
+                </button>
                 <button
                   @click.stop="toggleDropdown(applicant.applyId, $event)"
-                  class="w-full px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs hover:bg-gray-100 flex items-center justify-center gap-1"
+                  class="flex-1 px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs hover:bg-gray-100 flex items-center justify-center gap-1"
                 >
-                  상태 변경
+                  상태
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                   </svg>
@@ -324,6 +342,14 @@
         </div>
       </div>
     </div>
+
+    <!-- 일정 생성 모달 -->
+    <ScheduleCreateModal
+      v-if="showScheduleModal && scheduleTarget"
+      :applicant="scheduleTarget"
+      @close="showScheduleModal = false"
+      @created="handleScheduleCreated"
+    />
   </div>
 </template>
 
@@ -335,6 +361,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { ProcessStepNames, ProcessStepColors, type ProcessStep, type ApplyDetailResponse } from '@/types/apply'
+import ScheduleCreateModal from '@/components/schedule/ScheduleCreateModal.vue'
 
 const route = useRoute()
 const applyStore = useApplyStore()
@@ -354,6 +381,16 @@ const transitionTarget = ref<ApplyDetailResponse | null>(null)
 const transitionNextStep = ref<string | null>(null)
 const transitionReason = ref('')
 const transitioning = ref(false)
+
+// 일정 생성 모달 상태
+const showScheduleModal = ref(false)
+const scheduleTarget = ref<{
+  applyId: number
+  userId: number
+  jobpostingId: number
+  currentStep?: string
+  jobpostingTitle?: string
+} | null>(null)
 
 // 현재 선택된 공고 정보
 const currentJobposting = computed(() => {
@@ -486,6 +523,25 @@ function handleTransition(applicant: ApplyDetailResponse, nextStep: string) {
   transitionReason.value = ''
   openDropdownId.value = null
   showTransitionModal.value = true
+}
+
+// 일정 모달 열기
+function openScheduleModal(applicant: ApplyDetailResponse) {
+  scheduleTarget.value = {
+    applyId: applicant.applyId,
+    userId: applicant.userId,
+    jobpostingId: selectedJobpostingId.value!,
+    currentStep: applicant.currentStep,
+    jobpostingTitle: currentJobposting.value?.title
+  }
+  showScheduleModal.value = true
+}
+
+// 일정 생성 완료
+function handleScheduleCreated() {
+  showScheduleModal.value = false
+  scheduleTarget.value = null
+  alert('일정이 등록되었습니다. 지원자에게 알림이 발송됩니다.')
 }
 
 // 모달 닫기
