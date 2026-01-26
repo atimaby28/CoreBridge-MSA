@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import NotificationDropdown from '@/components/notification/NotificationDropdown.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -47,8 +48,12 @@ async function handleLogout(): Promise<void> {
           </router-link>
         </template>
 
-        <!-- 로그인: 사용자 메뉴 -->
+        <!-- 로그인: 알림 + 사용자 메뉴 -->
         <template v-else>
+          <!-- 알림 드롭다운 -->
+          <NotificationDropdown />
+
+          <!-- 사용자 메뉴 -->
           <div class="relative">
             <button 
               @click="showUserMenu = !showUserMenu"
