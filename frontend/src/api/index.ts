@@ -22,6 +22,7 @@ const SERVICE_URLS: Record<string, string> = {
   like: import.meta.env.VITE_LIKE_API_URL || 'http://localhost:8005',
   hot: import.meta.env.VITE_HOT_API_URL || 'http://localhost:8006',
   read: import.meta.env.VITE_READ_API_URL || 'http://localhost:8007',
+  apply: import.meta.env.VITE_APPLY_API_URL || 'http://localhost:8009',
   audit: import.meta.env.VITE_AUDIT_API_URL || 'http://localhost:8013',
 }
 
@@ -98,4 +99,5 @@ export const viewApi = createApiInstance('view')
 export const likeApi = createApiInstance('like')
 export const hotApi = createApiInstance('hot')
 export const readApi = createApiInstance('read')
+export const applyApi = createApiInstance('apply')
 export const auditApi = createApiInstance('audit')

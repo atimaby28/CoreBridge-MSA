@@ -67,33 +67,53 @@
                 </div>
               </div>
 
-              <!-- 좋아요 버튼 -->
-              <button
-                v-if="isAuthenticated"
-                @click="handleLike"
-                :class="[
-                  jobposting.isLiked
-                    ? 'bg-red-100 text-red-600 border-red-200'
-                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50',
-                  'flex items-center px-4 py-2 rounded-lg border transition-colors'
-                ]"
-              >
-                <svg
-                  :class="[jobposting.isLiked ? 'text-red-500' : 'text-gray-400']"
-                  class="w-5 h-5 mr-1.5"
-                  :fill="jobposting.isLiked ? 'currentColor' : 'none'"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <!-- 좋아요 & 지원하기 버튼 -->
+              <div class="flex items-center space-x-3">
+                <button
+                  v-if="isAuthenticated"
+                  @click="handleLike"
+                  :class="[
+                    jobposting.isLiked
+                      ? 'bg-red-100 text-red-600 border-red-200'
+                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50',
+                    'flex items-center px-4 py-2 rounded-lg border transition-colors'
+                  ]"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-                좋아요 {{ jobposting.likeCount }}
-              </button>
-              <div v-else class="flex items-center text-gray-400">
-                <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-                좋아요 {{ jobposting.likeCount }}
+                  <svg
+                    :class="[jobposting.isLiked ? 'text-red-500' : 'text-gray-400']"
+                    class="w-5 h-5 mr-1.5"
+                    :fill="jobposting.isLiked ? 'currentColor' : 'none'"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  좋아요 {{ jobposting.likeCount }}
+                </button>
+                <div v-else class="flex items-center text-gray-400">
+                  <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  좋아요 {{ jobposting.likeCount }}
+                </div>
+
+                <!-- 지원하기 버튼 -->
+                <button
+                  v-if="isAuthenticated && !isOwner"
+                  @click="handleApply"
+                  :disabled="applying || hasApplied"
+                  :class="[
+                    hasApplied
+                      ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed'
+                      : 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700',
+                    'flex items-center px-4 py-2 rounded-lg border transition-colors'
+                  ]"
+                >
+                  <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {{ applying ? '지원 중...' : hasApplied ? '지원 완료' : '지원하기' }}
+                </button>
               </div>
             </div>
           </div>
@@ -244,11 +264,13 @@ import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useJobpostingStore } from '@/stores/jobposting'
 import { useAuthStore } from '@/stores/auth'
+import { useApplyStore } from '@/stores/apply'
 
 const router = useRouter()
 const route = useRoute()
 const jobpostingStore = useJobpostingStore()
 const authStore = useAuthStore()
+const applyStore = useApplyStore()
 
 const { currentJobposting: jobposting, comments, loading, error, commentPage, commentTotalPages } = storeToRefs(jobpostingStore)
 const { isAuthenticated, userId } = storeToRefs(authStore)
@@ -258,6 +280,8 @@ const newComment = ref('')
 const submittingComment = ref(false)
 const showDeleteModal = ref(false)
 const deleting = ref(false)
+const applying = ref(false)
+const hasApplied = ref(false)
 
 // 작성자 여부
 const isOwner = computed(() => {
@@ -305,6 +329,31 @@ async function handleLike() {
     await jobpostingStore.toggleLike(jobposting.value.jobpostingId)
   } catch (e) {
     alert('좋아요 처리에 실패했습니다.')
+  }
+}
+
+// 지원하기
+async function handleApply() {
+  if (!isAuthenticated.value || !jobposting.value || !userId.value) return
+  if (applying.value || hasApplied.value) return
+  
+  applying.value = true
+  try {
+    await applyStore.createApply({
+      userId: userId.value,
+      jobpostingId: jobposting.value.jobpostingId,
+    })
+    hasApplied.value = true
+    alert('지원이 완료되었습니다!')
+  } catch (e: any) {
+    if (e.message?.includes('이미 지원')) {
+      hasApplied.value = true
+      alert('이미 지원한 공고입니다.')
+    } else {
+      alert('지원에 실패했습니다.')
+    }
+  } finally {
+    applying.value = false
   }
 }
 
@@ -369,6 +418,17 @@ onMounted(async () => {
   try {
     await jobpostingStore.fetchJobposting(jobpostingId, userId.value || undefined)
     await jobpostingStore.fetchComments(jobpostingId, 1)
+    
+    // 로그인한 경우 지원 여부 확인
+    if (isAuthenticated.value && userId.value) {
+      try {
+        await applyStore.fetchMyApplies(userId.value)
+        const myApplies = applyStore.myApplies
+        hasApplied.value = myApplies.some(a => a.jobpostingId === jobpostingId)
+      } catch {
+        // 지원 내역 조회 실패해도 무시
+      }
+    }
   } catch (e) {
     console.error('Failed to load jobposting:', e)
   }

@@ -79,7 +79,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/company/applications',
     name: 'CompanyApplications',
-    component: () => import('@/views/PlaceholderView.vue'),
+    component: () => import('@/views/apply/ApplicantManageView.vue'),
     meta: { requiresAuth: true, requiresCompany: true },
   },
   {
@@ -119,7 +119,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/my/applications',
     name: 'MyApplications',
-    component: () => import('@/views/PlaceholderView.vue'),
+    component: () => import('@/views/apply/MyApplyListView.vue'),
     meta: { requiresAuth: true },
   },
   {
