@@ -85,7 +85,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/company/schedules',
     name: 'CompanySchedules',
-    component: () => import('@/views/PlaceholderView.vue'),
+    component: () => import('@/views/schedule/ScheduleListView.vue'),
     meta: { requiresAuth: true, requiresCompany: true },
   },
   {
@@ -125,7 +125,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/my/schedules',
     name: 'MySchedules',
-    component: () => import('@/views/PlaceholderView.vue'),
+    component: () => import('@/views/schedule/ScheduleListView.vue'),
     meta: { requiresAuth: true },
   },
   {

@@ -30,6 +30,7 @@ const SERVICE_URLS: Record<string, string> = {
   resume: import.meta.env.VITE_RESUME_API_URL || 'http://localhost:8008',
   apply: import.meta.env.VITE_APPLY_API_URL || 'http://localhost:8009',
   notification: import.meta.env.VITE_NOTIFICATION_API_URL || 'http://localhost:8011',
+  schedule: import.meta.env.VITE_SCHEDULE_API_URL || 'http://localhost:8012',
   audit: import.meta.env.VITE_AUDIT_API_URL || 'http://localhost:8013',
 }
 
@@ -109,4 +110,5 @@ export const readApi = createApiInstance('read')
 export const resumeApi = createApiInstance('resume')
 export const applyApi = createApiInstance('apply')
 export const notificationApi = createApiInstance('notification')
+export const scheduleApi = createApiInstance('schedule')
 export const auditApi = createApiInstance('audit')
