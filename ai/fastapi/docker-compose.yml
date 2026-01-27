@@ -1,0 +1,24 @@
+version: '3.8'
+services:
+  redis:
+    image: redis/redis-stack-server
+    container_name: corebridge-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  fastapi:
+    build: .
+    container_name: corebridge-ai
+    ports:
+      - "9001:9001"
+    environment:
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - REDIS_HOST=redis
+      - GEN_MODEL=tinyllama
+    depends_on:
+      - redis
+
+volumes:
+  redis_data:
