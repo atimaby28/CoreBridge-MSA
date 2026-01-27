@@ -81,6 +81,26 @@
             ></textarea>
           </div>
 
+          <!-- 필수 스킬 -->
+          <SkillTagInput
+            v-model="form.requiredSkills"
+            label="필수 스킬"
+            placeholder="필수 스킬을 입력하세요"
+            help-text="자격요건에 해당하는 필수 기술을 입력하세요 (AI 매칭에 활용)"
+            color="blue"
+            :suggestions="SKILL_SUGGESTIONS"
+          />
+
+          <!-- 우대 스킬 -->
+          <SkillTagInput
+            v-model="form.preferredSkills"
+            label="우대 스킬"
+            placeholder="우대 스킬을 입력하세요"
+            help-text="우대사항에 해당하는 기술을 입력하세요"
+            color="purple"
+            :suggestions="SKILL_SUGGESTIONS"
+          />
+
           <!-- 에러 메시지 -->
           <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4">
             <p class="text-red-600 text-sm">{{ error }}</p>
@@ -122,6 +142,15 @@ import { useJobpostingStore } from '@/stores/jobposting'
 import { useAuthStore } from '@/stores/auth'
 import { DEFAULT_BOARDS } from '@/types/jobposting'
 import { jobpostingService } from '@/api/jobposting'
+import SkillTagInput from '@/components/common/SkillTagInput.vue'
+
+// 추천 스킬 목록
+const SKILL_SUGGESTIONS = [
+  'Java', 'Spring Boot', 'Python', 'JavaScript', 'TypeScript',
+  'React', 'Vue.js', 'Node.js', 'Go', 'Kotlin',
+  'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Kafka',
+  'Docker', 'Kubernetes', 'AWS', 'GCP', 'Jenkins'
+]
 
 const router = useRouter()
 const route = useRoute()
@@ -143,6 +172,8 @@ const form = ref({
   boardId: 2 as number | '',
   title: '',
   content: '',
+  requiredSkills: [] as string[],
+  preferredSkills: [] as string[],
 })
 
 // 제출 중 상태
@@ -182,6 +213,8 @@ async function handleSubmit() {
       await jobpostingStore.updateJobposting(jobpostingId.value, {
         title: form.value.title.trim(),
         content: form.value.content.trim(),
+        requiredSkills: form.value.requiredSkills.length > 0 ? form.value.requiredSkills : undefined,
+        preferredSkills: form.value.preferredSkills.length > 0 ? form.value.preferredSkills : undefined,
       })
       router.push(`/jobpostings/${jobpostingId.value}`)
     } else {
@@ -190,6 +223,8 @@ async function handleSubmit() {
         boardId: form.value.boardId as number,
         title: form.value.title.trim(),
         content: form.value.content.trim(),
+        requiredSkills: form.value.requiredSkills.length > 0 ? form.value.requiredSkills : undefined,
+        preferredSkills: form.value.preferredSkills.length > 0 ? form.value.preferredSkills : undefined,
       })
       router.push(`/jobpostings/${jobposting.jobpostingId}`)
     }
@@ -217,6 +252,8 @@ async function loadJobposting() {
     form.value.boardId = jobposting.boardId
     form.value.title = jobposting.title
     form.value.content = jobposting.content
+    form.value.requiredSkills = jobposting.requiredSkills || []
+    form.value.preferredSkills = jobposting.preferredSkills || []
   } catch (e) {
     console.error('Failed to load jobposting:', e)
     alert('채용공고를 불러오는데 실패했습니다.')

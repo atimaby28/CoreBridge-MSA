@@ -29,6 +29,9 @@ public class JobpostingDto {
         @NotNull(message = "게시판 ID는 필수입니다")
         private Long boardId;
 
+        private List<String> requiredSkills;   // 필수 스킬 태그
+        private List<String> preferredSkills;  // 우대 스킬 태그
+
         // userId는 Controller에서 SecurityContext로부터 주입됨 (Request Body에서 받지 않음)
     }
 
@@ -41,6 +44,9 @@ public class JobpostingDto {
         private String title;
 
         private String content;
+
+        private List<String> requiredSkills;   // 필수 스킬 태그
+        private List<String> preferredSkills;  // 우대 스킬 태그
     }
 
     @Builder
@@ -51,6 +57,8 @@ public class JobpostingDto {
         private String content;
         private Long boardId;
         private Long userId;
+        private List<String> requiredSkills;
+        private List<String> preferredSkills;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
@@ -61,9 +69,22 @@ public class JobpostingDto {
                     .content(jobposting.getContent())
                     .boardId(jobposting.getBoardId())
                     .userId(jobposting.getUserId())
+                    .requiredSkills(parseSkills(jobposting.getRequiredSkills()))
+                    .preferredSkills(parseSkills(jobposting.getPreferredSkills()))
                     .createdAt(jobposting.getCreatedAt())
                     .updatedAt(jobposting.getUpdatedAt())
                     .build();
+        }
+
+        private static List<String> parseSkills(String skillsJson) {
+            if (skillsJson == null || skillsJson.isBlank()) {
+                return List.of();
+            }
+            String cleaned = skillsJson.replaceAll("[\\[\\]\"]", "");
+            if (cleaned.isBlank()) {
+                return List.of();
+            }
+            return List.of(cleaned.split(",\\s*"));
         }
     }
 

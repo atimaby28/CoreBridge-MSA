@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+redis==5.*
+numpy
+python-dotenv
+pydantic
+ollama
+openai>=1.40.0
+prometheus_client

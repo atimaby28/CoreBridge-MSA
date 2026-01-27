@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,7 +36,9 @@ public class JobpostingService {
                         request.getTitle(),
                         request.getContent(),
                         request.getBoardId(),
-                        userId  // 인증된 사용자 ID 사용
+                        userId,
+                        toJson(request.getRequiredSkills()),
+                        toJson(request.getPreferredSkills())
                 )
         );
 
@@ -61,7 +65,12 @@ public class JobpostingService {
         // 본인 검증
         validateOwner(jobposting, userId);
 
-        jobposting.update(request.getTitle(), request.getContent());
+        jobposting.update(
+                request.getTitle(),
+                request.getContent(),
+                toJson(request.getRequiredSkills()),
+                toJson(request.getPreferredSkills())
+        );
 
         log.info("채용공고 수정: jobpostingId={}, userId={}", jobpostingId, userId);
 
@@ -145,5 +154,16 @@ public class JobpostingService {
         if (!jobposting.getUserId().equals(userId)) {
             throw new IllegalStateException("본인이 작성한 채용공고만 수정/삭제할 수 있습니다");
         }
+    }
+
+    /**
+     * 스킬 리스트를 JSON 배열 문자열로 변환
+     * ["Java", "Spring"] -> "[\"Java\",\"Spring\"]"
+     */
+    private String toJson(List<String> skills) {
+        if (skills == null || skills.isEmpty()) {
+            return null;
+        }
+        return "[\"" + String.join("\",\"", skills) + "\"]";
     }
 }

@@ -126,6 +126,32 @@ Java, Spring Boot, PostgreSQL, Redis, Kubernetes"
               </div>
             </div>
 
+            <!-- 보유 스킬 태그 -->
+            <div>
+              <template v-if="isEditing">
+                <SkillTagInput
+                  v-model="editForm.skills"
+                  label="보유 스킬"
+                  placeholder="보유 스킬을 입력하세요"
+                  help-text="Enter로 태그 추가 (AI 매칭에 활용됩니다)"
+                  color="blue"
+                  :suggestions="SKILL_SUGGESTIONS"
+                />
+              </template>
+              <template v-else-if="resume?.skills && resume.skills.length > 0">
+                <label class="block text-sm font-medium text-gray-700 mb-2">보유 스킬</label>
+                <div class="flex flex-wrap gap-2">
+                  <span
+                    v-for="skill in resume.skills"
+                    :key="skill"
+                    class="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full font-medium"
+                  >
+                    {{ skill }}
+                  </span>
+                </div>
+              </template>
+            </div>
+
             <!-- 수정 모드 버튼 -->
             <div v-if="isEditing" class="flex justify-between items-center pt-2 border-t border-gray-100">
               <div class="text-xs text-gray-400">
@@ -274,17 +300,6 @@ Java, Spring Boot, PostgreSQL, Redis, Kubernetes"
                 </div>
               </div>
 
-              <!-- 경력 연차 -->
-              <div v-if="resume.aiExperienceYears">
-                <h4 class="text-sm font-medium text-purple-800 mb-2 flex items-center gap-1">
-                  📊 추정 경력
-                </h4>
-                <div class="bg-white rounded-lg p-3 border border-purple-100">
-                  <span class="text-2xl font-bold text-purple-700">{{ resume.aiExperienceYears }}</span>
-                  <span class="text-purple-600 ml-1">년차</span>
-                </div>
-              </div>
-
               <!-- 분석 일시 -->
               <div class="text-xs text-purple-400 text-right">
                 분석 일시: {{ formatDate(resume.analyzedAt) }}
@@ -299,7 +314,6 @@ Java, Spring Boot, PostgreSQL, Redis, Kubernetes"
           <ul class="text-sm text-blue-700 space-y-1">
             <li>• 이력서 내용을 자동 요약</li>
             <li>• 기술 스택 자동 추출</li>
-            <li>• 경력 연차 추정</li>
             <li>• JD 매칭 점수 산출 (예정)</li>
           </ul>
         </div>
@@ -356,6 +370,15 @@ import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useResumeStore } from '@/stores/resume'
 import { storeToRefs } from 'pinia'
 import { ResumeStatusNames, ResumeStatusColors, type ResumeStatus, type VersionResponse } from '@/types/resume'
+import SkillTagInput from '@/components/common/SkillTagInput.vue'
+
+// 추천 스킬 목록
+const SKILL_SUGGESTIONS = [
+  'Java', 'Spring Boot', 'Python', 'JavaScript', 'TypeScript',
+  'React', 'Vue.js', 'Node.js', 'Go', 'Kotlin',
+  'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Kafka',
+  'Docker', 'Kubernetes', 'AWS', 'GCP', 'Jenkins'
+]
 
 const resumeStore = useResumeStore()
 const { resume, versions, loading, analyzing, error } = storeToRefs(resumeStore)
@@ -370,12 +393,16 @@ const selectedVersion = ref<VersionResponse | null>(null)
 const editForm = reactive({
   title: '',
   content: '',
+  skills: [] as string[],
 })
 
 // 변경 사항 있는지 확인
 const hasChanges = computed(() => {
-  if (!resume.value) return editForm.title.length > 0 || editForm.content.length > 0
-  return editForm.title !== (resume.value.title || '') || editForm.content !== (resume.value.content || '')
+  if (!resume.value) return editForm.title.length > 0 || editForm.content.length > 0 || editForm.skills.length > 0
+  const titleChanged = editForm.title !== (resume.value.title || '')
+  const contentChanged = editForm.content !== (resume.value.content || '')
+  const skillsChanged = JSON.stringify(editForm.skills) !== JSON.stringify(resume.value.skills || [])
+  return titleChanged || contentChanged || skillsChanged
 })
 
 function getStatusColor(status: ResumeStatus): string {
@@ -401,6 +428,7 @@ function formatDate(dateString?: string): string {
 function startEditing() {
   editForm.title = resume.value?.title || ''
   editForm.content = resume.value?.content || ''
+  editForm.skills = [...(resume.value?.skills || [])]
   isEditing.value = true
 }
 
@@ -410,6 +438,7 @@ function cancelEditing() {
   // 폼 초기화
   editForm.title = resume.value?.title || ''
   editForm.content = resume.value?.content || ''
+  editForm.skills = [...(resume.value?.skills || [])]
 }
 
 async function handleSave() {
@@ -419,6 +448,7 @@ async function handleSave() {
     await resumeStore.update({
       title: editForm.title,
       content: editForm.content,
+      skills: editForm.skills.length > 0 ? editForm.skills : undefined,
     })
     isEditing.value = false
     alert('이력서가 저장되었습니다.')
@@ -435,7 +465,24 @@ async function handleAnalyze() {
   
   try {
     await resumeStore.analyze()
-    alert('AI 분석이 요청되었습니다. 잠시 후 결과를 확인해주세요.')
+    alert('AI 분석이 요청되었습니다. 완료되면 자동으로 업데이트됩니다.')
+    
+    // 분석 완료까지 폴링 (최대 2분)
+    const maxAttempts = 24  // 5초 * 24 = 120초
+    let attempts = 0
+    
+    const pollAnalysis = setInterval(async () => {
+      attempts++
+      await resumeStore.fetchResume()
+      
+      if (resume.value?.status === 'ANALYZED' || attempts >= maxAttempts) {
+        clearInterval(pollAnalysis)
+        if (resume.value?.status === 'ANALYZED') {
+          alert('AI 분석이 완료되었습니다!')
+        }
+      }
+    }, 5000)  // 5초마다 확인
+    
   } catch (e) {
     alert('AI 분석 요청에 실패했습니다.')
   }

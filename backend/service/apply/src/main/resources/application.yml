@@ -38,3 +38,8 @@ audit:
 notification:
   service:
     url: http://localhost:8011
+
+# AI 서비스 설정
+ai:
+  service:
+    url: http://localhost:9001
