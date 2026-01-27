@@ -20,6 +20,7 @@ public class ResumeDto {
         private String title;
         private String content;
         private String memo;  // 버전 저장 메모 (선택)
+        private List<String> skills;  // 보유 스킬 태그 (선택)
     }
 
     @Getter
@@ -31,7 +32,6 @@ public class ResumeDto {
     public static class AiResultRequest {
         private String summary;
         private String skills;  // JSON 배열 문자열
-        private Integer experienceYears;
     }
 
     // ============================================
@@ -50,10 +50,12 @@ public class ResumeDto {
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
+        // 사용자 입력 스킬
+        private List<String> skills;
+
         // AI 분석 결과
         private String aiSummary;
         private List<String> aiSkills;
-        private Integer aiExperienceYears;
         private LocalDateTime analyzedAt;
 
         public static ResumeResponse from(Resume resume) {
@@ -66,9 +68,9 @@ public class ResumeDto {
                     .currentVersion(resume.getCurrentVersion())
                     .createdAt(resume.getCreatedAt())
                     .updatedAt(resume.getUpdatedAt())
+                    .skills(parseSkills(resume.getSkills()))
                     .aiSummary(resume.getAiSummary())
                     .aiSkills(parseSkills(resume.getAiSkills()))
-                    .aiExperienceYears(resume.getAiExperienceYears())
                     .analyzedAt(resume.getAnalyzedAt())
                     .build();
         }

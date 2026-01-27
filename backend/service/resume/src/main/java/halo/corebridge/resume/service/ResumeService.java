@@ -1,5 +1,6 @@
 package halo.corebridge.resume.service;
 
+import halo.corebridge.resume.client.AiServiceClient;
 import halo.corebridge.resume.model.dto.ResumeDto;
 import halo.corebridge.resume.model.entity.Resume;
 import halo.corebridge.resume.model.entity.ResumeVersion;
@@ -21,6 +22,7 @@ public class ResumeService {
 
     private final ResumeRepository resumeRepository;
     private final ResumeVersionRepository versionRepository;
+    private final AiServiceClient aiServiceClient;
 
     // ============================================
     // 이력서 조회/생성
@@ -78,7 +80,22 @@ public class ResumeService {
 
         // 새 내용으로 업데이트
         resume.update(request.getTitle(), request.getContent());
+        
+        // 스킬 태그 업데이트
+        if (request.getSkills() != null) {
+            resume.updateSkills(toJson(request.getSkills()));
+        }
+        
         resumeRepository.save(resume);
+
+        // AI 서비스에 이력서 저장 (비동기)
+        if (request.getContent() != null && !request.getContent().isBlank()) {
+            aiServiceClient.saveResumeAsync(
+                resume.getId(),
+                request.getContent(),
+                request.getSkills()
+            );
+        }
 
         return ResumeDto.ResumeResponse.from(resume);
     }
@@ -158,7 +175,7 @@ public class ResumeService {
     // ============================================
 
     /**
-     * AI 분석 요청 (상태 변경)
+     * AI 분석 요청 (비동기로 분석 후 결과 저장)
      */
     @Transactional
     public ResumeDto.ResumeResponse requestAnalysis(Long userId) {
@@ -169,17 +186,22 @@ public class ResumeService {
             throw new IllegalStateException("이력서 내용이 없습니다.");
         }
 
+        // 상태를 ANALYZING으로 변경
         resume.markAnalyzing();
         resumeRepository.save(resume);
 
-        // TODO: AI Pipeline 호출 (n8n webhook 또는 Kafka 이벤트 발행)
-        log.info("AI 분석 요청: resumeId={}", resume.getId());
+        final Long resumeId = resume.getId();
+        final String content = resume.getContent();
 
+        // 비동기로 AI 분석 수행 (완료 후 자동 저장)
+        aiServiceClient.analyzeAndSaveAsync(resumeId, content);
+
+        log.info("AI 분석 요청: resumeId={}", resumeId);
         return ResumeDto.ResumeResponse.from(resume);
     }
 
     /**
-     * AI 분석 결과 저장 (콜백용)
+     * AI 분석 결과 저장 (외부 콜백용 - 기존 메서드 유지)
      */
     @Transactional
     public ResumeDto.ResumeResponse updateAiResult(Long resumeId, ResumeDto.AiResultRequest request) {
@@ -188,12 +210,25 @@ public class ResumeService {
 
         resume.updateAiAnalysis(
                 request.getSummary(),
-                request.getSkills(),
-                request.getExperienceYears()
+                request.getSkills()
         );
         resumeRepository.save(resume);
 
         log.info("AI 분석 결과 저장: resumeId={}", resumeId);
         return ResumeDto.ResumeResponse.from(resume);
+    }
+
+    // ============================================
+    // Private Methods
+    // ============================================
+
+    /**
+     * 스킬 리스트를 JSON 배열 문자열로 변환
+     */
+    private String toJson(List<String> skills) {
+        if (skills == null || skills.isEmpty()) {
+            return null;
+        }
+        return "[\"" + String.join("\",\"", skills) + "\"]";
     }
 }

@@ -41,6 +41,14 @@ public class Resume extends BaseTimeEntity {
     private int currentVersion;
 
     // ============================================
+    // 사용자 입력 스킬 (태그)
+    // ============================================
+    
+    /** 사용자가 직접 입력한 보유 스킬 목록 (JSON 배열 형태: ["Java", "Spring", ...]) */
+    @Column(columnDefinition = "TEXT")
+    private String skills;
+
+    // ============================================
     // AI 분석 결과 필드
     // ============================================
     
@@ -51,9 +59,6 @@ public class Resume extends BaseTimeEntity {
     /** AI가 추출한 스킬 목록 (JSON 배열 형태) */
     @Column(columnDefinition = "TEXT")
     private String aiSkills;
-
-    /** AI가 추출한 경력 연차 */
-    private Integer aiExperienceYears;
 
     /** 마지막 AI 분석 시각 */
     private LocalDateTime analyzedAt;
@@ -97,6 +102,13 @@ public class Resume extends BaseTimeEntity {
     }
 
     /**
+     * 보유 스킬 업데이트
+     */
+    public void updateSkills(String skills) {
+        this.skills = skills;
+    }
+
+    /**
      * 특정 버전으로 복원
      */
     public void restoreFromVersion(String title, String content, int newVersion) {
@@ -116,10 +128,9 @@ public class Resume extends BaseTimeEntity {
     /**
      * AI 분석 결과 저장
      */
-    public void updateAiAnalysis(String summary, String skills, Integer experienceYears) {
+    public void updateAiAnalysis(String summary, String skills) {
         this.aiSummary = summary;
         this.aiSkills = skills;
-        this.aiExperienceYears = experienceYears;
         this.analyzedAt = LocalDateTime.now();
         this.status = ResumeStatus.ANALYZED;
     }
@@ -130,7 +141,6 @@ public class Resume extends BaseTimeEntity {
     public void clearAiAnalysis() {
         this.aiSummary = null;
         this.aiSkills = null;
-        this.aiExperienceYears = null;
         this.analyzedAt = null;
         this.status = ResumeStatus.DRAFT;
     }

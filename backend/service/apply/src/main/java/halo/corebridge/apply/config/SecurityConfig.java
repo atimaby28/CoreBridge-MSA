@@ -54,6 +54,9 @@ public class SecurityConfig {
                         // 프로세스 API - 모두 인증 필요
                         .requestMatchers("/api/v1/processes/**").authenticated()
 
+                        // AI 매칭 API - 인증 필요
+                        .requestMatchers("/api/v1/ai-matching/**").authenticated()
+
                         // Actuator, Health check 허용
                         .requestMatchers("/actuator/**", "/health/**").permitAll()
 
