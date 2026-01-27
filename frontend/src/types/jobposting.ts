@@ -9,6 +9,8 @@ export interface Jobposting {
   content: string
   boardId: number
   userId: number
+  requiredSkills?: string[]   // 필수 스킬
+  preferredSkills?: string[]  // 우대 스킬
   createdAt: string
   updatedAt: string
 }
@@ -21,6 +23,8 @@ export interface JobpostingReadResponse {
   boardId: number
   userId: number
   nickname: string
+  requiredSkills?: string[]   // 필수 스킬
+  preferredSkills?: string[]  // 우대 스킬
   viewCount: number
   likeCount: number
   commentCount: number
@@ -44,12 +48,16 @@ export interface JobpostingCreateRequest {
   title: string
   content: string
   boardId: number
+  requiredSkills?: string[]   // 필수 스킬
+  preferredSkills?: string[]  // 우대 스킬
 }
 
 // 채용공고 수정 요청
 export interface JobpostingUpdateRequest {
   title?: string
   content?: string
+  requiredSkills?: string[]   // 필수 스킬
+  preferredSkills?: string[]  // 우대 스킬
 }
 
 // 채용공고 목록 응답 (페이징)

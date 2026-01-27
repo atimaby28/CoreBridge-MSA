@@ -141,6 +141,16 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
 
+  // ============================================
+  // AI 매칭 (ROLE_COMPANY)
+  // ============================================
+  {
+    path: '/company/ai-matching',
+    name: 'AiMatching',
+    component: () => import('@/views/ai/AiMatchingView.vue'),
+    meta: { requiresAuth: true, requiresCompany: true },
+  },
+
   // 404
   {
     path: '/:pathMatch(.*)*',

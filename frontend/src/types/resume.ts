@@ -25,12 +25,12 @@ export interface ResumeUpdateRequest {
   title: string
   content?: string
   memo?: string  // 버전 저장 메모
+  skills?: string[]  // 사용자 입력 스킬 태그
 }
 
 export interface AiResultRequest {
   summary: string
   skills: string  // JSON 배열 문자열
-  experienceYears: number
 }
 
 // ============================================
@@ -46,10 +46,11 @@ export interface ResumeResponse {
   currentVersion: number
   createdAt: string
   updatedAt: string
+  // 사용자 입력 스킬
+  skills?: string[]
   // AI 분석 결과
   aiSummary?: string
   aiSkills?: string[]
-  aiExperienceYears?: number
   analyzedAt?: string
 }
 
