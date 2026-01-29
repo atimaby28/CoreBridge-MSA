@@ -1,6 +1,6 @@
 package halo.corebridge.user.config;
 
-import halo.corebridge.user.security.JwtAuthenticationFilter;
+import halo.corebridge.common.security.GatewayAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,35 +14,24 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.List;
-
+/**
+ * User 서비스 Security 설정
+ * - JWT 검증은 Gateway에서 수행
+ * - JWT 생성(로그인)은 이 서비스에서 수행
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CSRF 비활성화 (JWT 사용)
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // CORS 설정
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // 세션 비활성화 (Stateless)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // URL별 인가 설정
                 .authorizeHttpRequests(auth -> auth
                         // 인증 없이 접근 가능
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/signup").permitAll()
@@ -50,34 +39,26 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/refresh").permitAll()
 
                         // Admin API는 ADMIN만
-                        .requestMatchers("/api/v1/users/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/users/admin/**").hasAuthority("ADMIN")
+
+                        // Actuator 허용
+                        .requestMatchers("/actuator/**", "/health/**").permitAll()
 
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
-
-                // JWT 필터 추가
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(gatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public GatewayAuthenticationFilter gatewayAuthenticationFilter() {
+        return new GatewayAuthenticationFilter();
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
