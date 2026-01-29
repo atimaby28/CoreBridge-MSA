@@ -1,7 +1,7 @@
 package halo.corebridge.jobposting.config;
 
 import halo.corebridge.common.audit.filter.AuditLoggingFilter;
-import halo.corebridge.jobposting.security.JwtAuthenticationFilter;
+import halo.corebridge.common.security.GatewayAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -14,30 +14,25 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.List;
-
+/**
+ * Gateway 기반 간소화된 Security 설정
+ * - JWT 검증은 Gateway에서 수행
+ * - 서비스는 Gateway가 전달한 X-User-* 헤더 사용
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuditLoggingFilter auditLoggingFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CSRF 비활성화 (JWT 사용)
+                // CSRF 비활성화 (내부 통신)
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // CORS 설정
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // 세션 비활성화 (Stateless)
                 .sessionManagement(session ->
@@ -48,11 +43,6 @@ public class SecurityConfig {
                         // 조회 API는 인증 없이 허용
                         .requestMatchers(HttpMethod.GET, "/api/v1/jobpostings/**").permitAll()
 
-                        // 생성/수정/삭제는 인증 필요
-                        .requestMatchers(HttpMethod.POST, "/api/v1/jobpostings/**").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/jobpostings/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/jobpostings/**").authenticated()
-
                         // Actuator, Health check 허용
                         .requestMatchers("/actuator/**", "/health/**").permitAll()
 
@@ -60,41 +50,26 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // ============================================
-                // Filter 순서 (중요!)
-                // ============================================
-                // 1. JwtAuthenticationFilter - 토큰 검증 → SecurityContext 설정
-                // 2. AuditLoggingFilter - SecurityContext에서 userId 추출
-                // ============================================
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(auditLoggingFilter, JwtAuthenticationFilter.class);
+                // Gateway 인증 필터 (JWT 검증 대신 헤더에서 사용자 정보 추출)
+                .addFilterBefore(gatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(auditLoggingFilter, GatewayAuthenticationFilter.class);
 
         return http.build();
     }
 
+    @Bean
+    public GatewayAuthenticationFilter gatewayAuthenticationFilter() {
+        return new GatewayAuthenticationFilter();
+    }
+
     /**
      * AuditLoggingFilter가 Servlet Filter로 자동 등록되는 것을 방지
-     * (Security Filter Chain에서만 동작하도록)
      */
     @Bean
     public FilterRegistrationBean<AuditLoggingFilter> auditLoggingFilterRegistration(
             AuditLoggingFilter filter) {
         FilterRegistrationBean<AuditLoggingFilter> registration = new FilterRegistrationBean<>(filter);
-        registration.setEnabled(false);  // 자동 등록 비활성화
+        registration.setEnabled(false);
         return registration;
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
     }
 }

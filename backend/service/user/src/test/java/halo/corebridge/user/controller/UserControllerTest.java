@@ -5,7 +5,6 @@ import halo.corebridge.common.audit.filter.AuditLoggingFilter;
 import halo.corebridge.user.model.dto.UserDto;
 import halo.corebridge.user.model.enums.UserRole;
 import halo.corebridge.user.model.enums.UserStatus;
-import halo.corebridge.user.security.JwtAuthenticationFilter;
 import halo.corebridge.user.security.JwtProperties;
 import halo.corebridge.user.security.JwtProvider;
 import halo.corebridge.user.service.UserService;

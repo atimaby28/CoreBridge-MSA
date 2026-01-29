@@ -1,12 +1,8 @@
-package halo.corebridge.jobpostinghot.config;
+package halo.corebridge.adminaudit.config;
 
-import halo.corebridge.common.audit.filter.AuditLoggingFilter;
 import halo.corebridge.common.security.GatewayAuthenticationFilter;
-import lombok.RequiredArgsConstructor;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -18,10 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
-
-    private final AuditLoggingFilter auditLoggingFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -30,13 +23,14 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 인기 채용공고 조회는 공개
-                        .requestMatchers(HttpMethod.GET, "/api/v1/jobpostings/hot/**").permitAll()
+                        // Audit 로그 수신은 내부 통신이므로 허용
+                        .requestMatchers("/api/v1/audit/**").permitAll()
+                        // Admin API는 ADMIN 권한 필요
+                        .requestMatchers("/api/v1/admin/**").hasAuthority("ADMIN")
                         .requestMatchers("/actuator/**", "/health/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(gatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(auditLoggingFilter, GatewayAuthenticationFilter.class);
+                .addFilterBefore(gatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -44,12 +38,5 @@ public class SecurityConfig {
     @Bean
     public GatewayAuthenticationFilter gatewayAuthenticationFilter() {
         return new GatewayAuthenticationFilter();
-    }
-
-    @Bean
-    public FilterRegistrationBean<AuditLoggingFilter> auditLoggingFilterRegistration(AuditLoggingFilter filter) {
-        FilterRegistrationBean<AuditLoggingFilter> registration = new FilterRegistrationBean<>(filter);
-        registration.setEnabled(false);
-        return registration;
     }
 }
