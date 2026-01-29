@@ -1,0 +1,108 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: gateway
+
+  cloud:
+    gateway:
+      # 라우팅 설정
+      routes:
+        # User Service (8001)
+        - id: user-service
+          uri: http://localhost:8001
+          predicates:
+            - Path=/api/v1/users/**
+
+        # JobPosting Service (8002)
+        - id: jobposting-service
+          uri: http://localhost:8002
+          predicates:
+            - Path=/api/v1/jobpostings/**
+
+        # Apply Service (8003)
+        - id: apply-service
+          uri: http://localhost:8003
+          predicates:
+            - Path=/api/v1/applications/**
+
+        # Schedule Service (8004)
+        - id: schedule-service
+          uri: http://localhost:8004
+          predicates:
+            - Path=/api/v1/schedules/**
+
+        # Notification Service (8005)
+        - id: notification-service
+          uri: http://localhost:8005
+          predicates:
+            - Path=/api/v1/notifications/**
+
+        # Resume Service (8006)
+        - id: resume-service
+          uri: http://localhost:8006
+          predicates:
+            - Path=/api/v1/resumes/**
+
+        # JobPosting-Like Service (8007)
+        - id: jobposting-like-service
+          uri: http://localhost:8007
+          predicates:
+            - Path=/api/v1/jobpostings/*/likes/**
+
+        # JobPosting-View Service (8008)
+        - id: jobposting-view-service
+          uri: http://localhost:8008
+          predicates:
+            - Path=/api/v1/jobpostings/*/views/**
+
+        # JobPosting-Read Service (8009)
+        - id: jobposting-read-service
+          uri: http://localhost:8009
+          predicates:
+            - Path=/api/v1/jobpostings/*/reads/**
+
+        # JobPosting-Hot Service (8010)
+        - id: jobposting-hot-service
+          uri: http://localhost:8010
+          predicates:
+            - Path=/api/v1/jobpostings/hot/**
+
+        # JobPosting-Comment Service (8011)
+        - id: jobposting-comment-service
+          uri: http://localhost:8011
+          predicates:
+            - Path=/api/v1/jobpostings/*/comments/**
+
+        # Admin-Audit Service (8012)
+        - id: admin-audit-service
+          uri: http://localhost:8012
+          predicates:
+            - Path=/api/v1/admin/**, /api/v1/audit/**
+
+      # 기본 설정
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:mySecretKeyForJwtTokenGenerationWhichIsLongEnough123456789}
+  access-token-expiration: 1800000   # 30분
+  refresh-token-expiration: 604800000  # 7일
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, gateway
+  endpoint:
+    gateway:
+      enabled: true
+
+# 로깅
+logging:
+  level:
+    halo.corebridge.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
