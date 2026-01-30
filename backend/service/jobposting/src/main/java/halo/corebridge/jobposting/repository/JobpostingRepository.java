@@ -11,7 +11,9 @@ import java.util.List;
 @Repository
 public interface JobpostingRepository extends JpaRepository<Jobposting, Long> {
     @Query(
-            value = "SELECT jobposting.jobposting_id, jobposting.title, jobposting.content, jobposting.board_id, jobposting.user_id, " +
+            value = "SELECT jobposting.jobposting_id, jobposting.title, jobposting.content, " +
+                    "jobposting.board_id, jobposting.user_id, " +
+                    "jobposting.required_skills, jobposting.preferred_skills, " +
                     "jobposting.created_at, jobposting.updated_at " +
                     "FROM (" +
                     "       SELECT jobposting_id FROM jobposting " +

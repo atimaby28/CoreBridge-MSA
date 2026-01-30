@@ -7,7 +7,7 @@ spring:
 
   cloud:
     gateway:
-      # 라우팅 설정
+      # 라우팅 설정 (순서 중요: 더 구체적인 경로가 먼저!)
       routes:
         # User Service (8001)
         - id: user-service
@@ -15,69 +15,69 @@ spring:
           predicates:
             - Path=/api/v1/users/**
 
-        # JobPosting Service (8002)
+        # JobPosting-Read Service (8007) - 통계 포함 조회
+        - id: jobposting-read-service
+          uri: http://localhost:8007
+          predicates:
+            - Path=/api/v1/jobposting-read/**
+
+        # JobPosting-Like Service (8005) - 좋아요
+        - id: jobposting-like-service
+          uri: http://localhost:8005
+          predicates:
+            - Path=/api/v1/jobpostings/*/likes/**
+
+        # JobPosting-View Service (8004) - 조회수
+        - id: jobposting-view-service
+          uri: http://localhost:8004
+          predicates:
+            - Path=/api/v1/jobpostings/*/views/**
+
+        # JobPosting-Comment Service (8003) - 댓글
+        - id: jobposting-comment-service
+          uri: http://localhost:8003
+          predicates:
+            - Path=/api/v1/jobpostings/*/comments/**
+
+        # JobPosting-Hot Service (8006) - 인기 공고
+        - id: jobposting-hot-service
+          uri: http://localhost:8006
+          predicates:
+            - Path=/api/v1/hot-jobpostings/**
+
+        # JobPosting Service (8002) - 기본 CRUD (마지막에 배치!)
         - id: jobposting-service
           uri: http://localhost:8002
           predicates:
             - Path=/api/v1/jobpostings/**
 
-        # Apply Service (8003)
+        # Apply Service (8009)
         - id: apply-service
-          uri: http://localhost:8003
+          uri: http://localhost:8009
           predicates:
             - Path=/api/v1/applications/**
 
-        # Schedule Service (8004)
+        # Schedule Service (8012)
         - id: schedule-service
-          uri: http://localhost:8004
+          uri: http://localhost:8012
           predicates:
             - Path=/api/v1/schedules/**
 
-        # Notification Service (8005)
+        # Notification Service (8011)
         - id: notification-service
-          uri: http://localhost:8005
+          uri: http://localhost:8011
           predicates:
             - Path=/api/v1/notifications/**
 
-        # Resume Service (8006)
+        # Resume Service (8008)
         - id: resume-service
-          uri: http://localhost:8006
+          uri: http://localhost:8008
           predicates:
             - Path=/api/v1/resumes/**
 
-        # JobPosting-Like Service (8007)
-        - id: jobposting-like-service
-          uri: http://localhost:8007
-          predicates:
-            - Path=/api/v1/jobpostings/*/likes/**
-
-        # JobPosting-View Service (8008)
-        - id: jobposting-view-service
-          uri: http://localhost:8008
-          predicates:
-            - Path=/api/v1/jobpostings/*/views/**
-
-        # JobPosting-Read Service (8009)
-        - id: jobposting-read-service
-          uri: http://localhost:8009
-          predicates:
-            - Path=/api/v1/jobpostings/*/reads/**
-
-        # JobPosting-Hot Service (8010)
-        - id: jobposting-hot-service
-          uri: http://localhost:8010
-          predicates:
-            - Path=/api/v1/jobpostings/hot/**
-
-        # JobPosting-Comment Service (8011)
-        - id: jobposting-comment-service
-          uri: http://localhost:8011
-          predicates:
-            - Path=/api/v1/jobpostings/*/comments/**
-
-        # Admin-Audit Service (8012)
+        # Admin-Audit Service (8013)
         - id: admin-audit-service
-          uri: http://localhost:8012
+          uri: http://localhost:8013
           predicates:
             - Path=/api/v1/admin/**, /api/v1/audit/**
 
@@ -85,9 +85,9 @@ spring:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
 
-# JWT 설정
+# JWT 설정 - Gateway와 User 서비스가 동일한 secret 사용 필수!
 jwt:
-  secret: ${JWT_SECRET:mySecretKeyForJwtTokenGenerationWhichIsLongEnough123456789}
+  secret: ${JWT_SECRET:corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}
   access-token-expiration: 1800000   # 30분
   refresh-token-expiration: 604800000  # 7일
 

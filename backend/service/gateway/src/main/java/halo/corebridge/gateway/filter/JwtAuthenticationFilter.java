@@ -32,7 +32,7 @@ import java.util.List;
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private static final String ACCESS_TOKEN_COOKIE = "accessToken";
-    
+
     // 인증 없이 접근 가능한 경로
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/v1/users/signup",
@@ -41,10 +41,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/actuator",
             "/health"
     );
-    
+
     // GET 요청은 인증 없이 허용하는 경로
     private static final List<String> PUBLIC_GET_PATHS = List.of(
-            "/api/v1/jobpostings"
+            "/api/v1/jobpostings",
+            "/api/v1/jobposting-read",   // 통계 포함 조회 추가
+            "/api/v1/hot-jobpostings"    // 인기 공고 조회 추가
     );
 
     private final JwtProperties jwtProperties;
@@ -70,7 +72,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         // 2. 토큰 추출
         String token = resolveToken(request);
-        
+
         if (token == null) {
             return onError(exchange, "토큰이 없습니다", HttpStatus.UNAUTHORIZED);
         }
@@ -78,7 +80,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         // 3. 토큰 검증
         try {
             Claims claims = validateAndGetClaims(token);
-            
+
             // 4. 검증 성공 → 헤더에 사용자 정보 추가
             ServerHttpRequest mutatedRequest = request.mutate()
                     .header("X-User-Id", claims.getSubject())
@@ -87,9 +89,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     .build();
 
             log.debug("JWT 인증 성공: userId={}, path={}", claims.getSubject(), path);
-            
+
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
-            
+
         } catch (ExpiredJwtException e) {
             log.warn("만료된 토큰: {}", e.getMessage());
             return onError(exchange, "토큰이 만료되었습니다", HttpStatus.UNAUTHORIZED);
@@ -114,7 +116,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 return true;
             }
         }
-        
+
         // GET 요청만 공개하는 경로
         if ("GET".equals(method)) {
             for (String publicGetPath : PUBLIC_GET_PATHS) {
@@ -123,7 +125,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 }
             }
         }
-        
+
         return false;
     }
 

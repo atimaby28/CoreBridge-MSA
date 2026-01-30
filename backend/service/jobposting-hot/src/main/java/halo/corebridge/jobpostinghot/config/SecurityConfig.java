@@ -31,7 +31,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // 인기 채용공고 조회는 공개
-                        .requestMatchers(HttpMethod.GET, "/api/v1/jobpostings/hot/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/hot-jobpostings/**").permitAll()
                         .requestMatchers("/actuator/**", "/health/**").permitAll()
                         .anyRequest().authenticated()
                 )
