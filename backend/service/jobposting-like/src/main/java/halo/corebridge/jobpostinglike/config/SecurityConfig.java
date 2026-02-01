@@ -1,4 +1,4 @@
-package halo.corebridge.jobpostingread.config;
+package halo.corebridge.jobpostinglike.config;
 
 import halo.corebridge.common.audit.filter.AuditLoggingFilter;
 import halo.corebridge.common.security.GatewayAuthenticationFilter;
@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -26,9 +27,13 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 좋아요 수 조회는 공개
+                        .requestMatchers(HttpMethod.GET, "/api/v1/jobposting-likes/jobpostings/*/count").permitAll()
                         .requestMatchers("/actuator/**", "/health/**").permitAll()
                         .anyRequest().authenticated()
                 )

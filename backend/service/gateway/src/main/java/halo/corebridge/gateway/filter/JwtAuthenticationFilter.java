@@ -45,8 +45,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     // GET 요청은 인증 없이 허용하는 경로
     private static final List<String> PUBLIC_GET_PATHS = List.of(
             "/api/v1/jobpostings",
-            "/api/v1/jobposting-read",   // 통계 포함 조회 추가
-            "/api/v1/hot-jobpostings"    // 인기 공고 조회 추가
+            "/api/v1/jobposting-read",   // 통계 포함 조회
+            "/api/v1/hot-jobpostings",   // 인기 공고 조회
+            "/api/v1/comments",          // 댓글 조회
+            "/api/v1/jobposting-views",  // 조회수 조회
+            "/api/v1/jobposting-likes"   // 좋아요 수 조회
     );
 
     private final JwtProperties jwtProperties;
@@ -65,23 +68,44 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String path = request.getURI().getPath();
         String method = request.getMethod().name();
 
-        // 1. Public 경로 체크
-        if (isPublicPath(path, method)) {
+        // 1. 완전 공개 경로 (항상 인증 스킵)
+        if (isFullyPublicPath(path)) {
             return chain.filter(exchange);
         }
 
         // 2. 토큰 추출
         String token = resolveToken(request);
 
+        // 3. GET 공개 경로: 토큰 있으면 인증 시도, 없으면 그냥 통과 (Optional 인증)
+        if (isOptionalAuthPath(path, method)) {
+            if (token != null) {
+                try {
+                    Claims claims = validateAndGetClaims(token);
+                    ServerHttpRequest mutatedRequest = request.mutate()
+                            .header("X-User-Id", claims.getSubject())
+                            .header("X-User-Email", claims.get("email", String.class))
+                            .header("X-User-Role", claims.get("role", String.class))
+                            .build();
+                    log.debug("Optional 인증 성공: userId={}, path={}", claims.getSubject(), path);
+                    return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                } catch (JwtException e) {
+                    // 토큰이 잘못되어도 공개 경로이므로 그냥 통과
+                    log.debug("Optional 인증 실패 (무시하고 통과): path={}, reason={}", path, e.getMessage());
+                }
+            }
+            return chain.filter(exchange);
+        }
+
+        // 4. 인증 필수 경로
         if (token == null) {
             return onError(exchange, "토큰이 없습니다", HttpStatus.UNAUTHORIZED);
         }
 
-        // 3. 토큰 검증
+        // 5. 토큰 검증
         try {
             Claims claims = validateAndGetClaims(token);
 
-            // 4. 검증 성공 → 헤더에 사용자 정보 추가
+            // 6. 검증 성공 → 헤더에 사용자 정보 추가
             ServerHttpRequest mutatedRequest = request.mutate()
                     .header("X-User-Id", claims.getSubject())
                     .header("X-User-Email", claims.get("email", String.class))
@@ -107,17 +131,21 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     /**
-     * Public 경로인지 확인
+     * 완전 공개 경로인지 확인 (토큰 검사 자체를 하지 않음)
      */
-    private boolean isPublicPath(String path, String method) {
-        // 완전 공개 경로
+    private boolean isFullyPublicPath(String path) {
         for (String publicPath : PUBLIC_PATHS) {
             if (path.startsWith(publicPath)) {
                 return true;
             }
         }
+        return false;
+    }
 
-        // GET 요청만 공개하는 경로
+    /**
+     * Optional 인증 경로인지 확인 (토큰 있으면 인증, 없으면 그냥 통과)
+     */
+    private boolean isOptionalAuthPath(String path, String method) {
         if ("GET".equals(method)) {
             for (String publicGetPath : PUBLIC_GET_PATHS) {
                 if (path.startsWith(publicGetPath)) {
@@ -125,7 +153,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 }
             }
         }
-
         return false;
     }
 

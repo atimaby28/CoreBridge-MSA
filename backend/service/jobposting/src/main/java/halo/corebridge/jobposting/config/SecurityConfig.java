@@ -33,6 +33,8 @@ public class SecurityConfig {
         http
                 // CSRF 비활성화 (내부 통신)
                 .csrf(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
 
                 // 세션 비활성화 (Stateless)
                 .sessionManagement(session ->

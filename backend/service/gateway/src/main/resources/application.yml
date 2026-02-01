@@ -25,19 +25,19 @@ spring:
         - id: jobposting-like-service
           uri: http://localhost:8005
           predicates:
-            - Path=/api/v1/jobpostings/*/likes/**
+            - Path=/api/v1/jobposting-likes/**
 
         # JobPosting-View Service (8004) - 조회수
         - id: jobposting-view-service
           uri: http://localhost:8004
           predicates:
-            - Path=/api/v1/jobpostings/*/views/**
+            - Path=/api/v1/jobposting-views/**
 
         # JobPosting-Comment Service (8003) - 댓글
         - id: jobposting-comment-service
           uri: http://localhost:8003
           predicates:
-            - Path=/api/v1/jobpostings/*/comments/**
+            - Path=/api/v1/comments/**
 
         # JobPosting-Hot Service (8006) - 인기 공고
         - id: jobposting-hot-service
@@ -55,7 +55,7 @@ spring:
         - id: apply-service
           uri: http://localhost:8009
           predicates:
-            - Path=/api/v1/applications/**
+            - Path=/api/v1/applies/**,/api/v1/processes/**,/api/v1/ai-matching/**
 
         # Schedule Service (8012)
         - id: schedule-service

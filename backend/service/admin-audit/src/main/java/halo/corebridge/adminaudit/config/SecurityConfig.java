@@ -20,13 +20,16 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Audit 로그 수신은 내부 통신이므로 허용
+                        // Audit 로그 수신은 내부 통신이므로 허용 (POST 포함)
                         .requestMatchers("/api/v1/audit/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/admin/audits").permitAll()
                         // Admin API는 ADMIN 권한 필요
-                        .requestMatchers("/api/v1/admin/**").hasAuthority("ADMIN")
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/actuator/**", "/health/**").permitAll()
                         .anyRequest().authenticated()
                 )

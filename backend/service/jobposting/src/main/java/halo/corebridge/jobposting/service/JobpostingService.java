@@ -119,14 +119,24 @@ public class JobpostingService {
      */
     @Transactional(readOnly = true)
     public JobpostingDto.JobpostingPageResponse readAll(Long boardId, Long page, Long pageSize) {
+        long offset = (page - 1) * pageSize;
+        long limit = PageLimitCalculator.calculatePageLimit(page, pageSize, 10L);
+
+        // boardId=1은 "전체" 게시판 → 모든 공고 조회
+        if (boardId == 1L) {
+            return JobpostingDto.JobpostingPageResponse.of(
+                    jobpostingRepository.findAllBoards(offset, pageSize).stream()
+                            .map(JobpostingDto.JobpostingResponse::from)
+                            .toList(),
+                    jobpostingRepository.countAll(limit)
+            );
+        }
+
         return JobpostingDto.JobpostingPageResponse.of(
-                jobpostingRepository.findAll(boardId, (page - 1) * pageSize, pageSize).stream()
+                jobpostingRepository.findAll(boardId, offset, pageSize).stream()
                         .map(JobpostingDto.JobpostingResponse::from)
                         .toList(),
-                jobpostingRepository.count(
-                        boardId,
-                        PageLimitCalculator.calculatePageLimit(page, pageSize, 10L)
-                )
+                jobpostingRepository.count(boardId, limit)
         );
     }
 

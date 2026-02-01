@@ -27,11 +27,14 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 댓글 조회는 공개
-                        .requestMatchers(HttpMethod.GET, "/api/v1/jobpostings/*/comments/**").permitAll()
+                        // 댓글 조회는 공개 (실제 컨트롤러 경로: /api/v1/comments)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/comments/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/comments").permitAll()
                         .requestMatchers("/actuator/**", "/health/**").permitAll()
                         .anyRequest().authenticated()
                 )
