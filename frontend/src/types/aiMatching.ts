@@ -2,10 +2,16 @@
 // AI Matching Types
 // ============================================
 
-// Request
-export interface AiMatchRequest {
+// === Request ===
+
+export interface MatchCandidatesRequest {
   jdText: string
   requiredSkills?: string[]
+  topK?: number
+}
+
+export interface MatchJobpostingsRequest {
+  resumeText: string
   topK?: number
 }
 
@@ -15,7 +21,13 @@ export interface AiScoreRequest {
   requiredSkills?: string[]
 }
 
-// Response
+export interface SkillGapRequest {
+  candidateId: string
+  jobpostingId: string
+}
+
+// === Response ===
+
 export interface MatchedCandidate {
   candidateId: string
   score: number
@@ -23,8 +35,19 @@ export interface MatchedCandidate {
   skills?: string[]
 }
 
-export interface AiMatchResponse {
+export interface MatchCandidatesResponse {
   matches: MatchedCandidate[]
+  totalCount: number
+}
+
+export interface MatchedJobposting {
+  jobpostingId: string
+  score: number
+  title?: string
+}
+
+export interface MatchJobpostingsResponse {
+  matches: MatchedJobposting[]
   totalCount: number
 }
 
@@ -44,7 +67,19 @@ export interface AiScoreResponse {
   scoreDetail: ScoreDetail
 }
 
-// Grade 색상 매핑
+export interface SkillGapResponse {
+  candidateId: string
+  jobpostingId: string
+  candidateSkills: string[]
+  requiredSkills: string[]
+  matchedSkills: string[]
+  missingSkills: string[]
+  matchRate: number
+  cosineSimilarity: number
+}
+
+// === UI Helpers ===
+
 export const GradeColors: Record<string, string> = {
   A: 'bg-green-100 text-green-800 border-green-300',
   B: 'bg-blue-100 text-blue-800 border-blue-300',
@@ -53,7 +88,6 @@ export const GradeColors: Record<string, string> = {
   F: 'bg-red-100 text-red-800 border-red-300',
 }
 
-// Grade 설명
 export const GradeDescriptions: Record<string, string> = {
   A: '매우 적합 (85점 이상)',
   B: '적합 (70~84점)',

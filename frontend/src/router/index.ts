@@ -151,6 +151,16 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, requiresCompany: true },
   },
 
+  // ============================================
+  // AI 추천 (ROLE_USER)
+  // ============================================
+  {
+    path: '/my/ai-recommend',
+    name: 'AiRecommend',
+    component: () => import('@/views/ai/AiRecommendView.vue'),
+    meta: { requiresAuth: true },
+  },
+
   // 404
   {
     path: '/:pathMatch(.*)*',
