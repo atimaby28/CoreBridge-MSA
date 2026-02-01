@@ -5,6 +5,8 @@ import { useAuthStore } from '@/stores/auth'
 import { adminUserService } from '@/api/user'
 import { getAuditStats, getRecentAudits, type AuditStatsResponse, type AuditResponse } from '@/api/audit'
 import { hotService, readService } from '@/api/jobposting'
+import { getUserApplyStats } from '@/api/apply'
+import { getMySchedules } from '@/api/schedule'
 import type { HotJobpostingResponse, JobpostingReadResponse } from '@/types/jobposting'
 
 const router = useRouter()
@@ -93,6 +95,39 @@ async function loadAuditStats() {
   }
 }
 
+// User 통계 로드 (지원 현황 + 면접)
+async function loadUserDashboardStats() {
+  if (!authStore.isUser || !authStore.userId) return
+
+  try {
+    // 지원 통계
+    const applyStats = await getUserApplyStats(authStore.userId)
+    stats.value.totalApplications = applyStats.totalProcesses ?? 0
+    stats.value.pendingApplications = applyStats.pendingProcesses ?? 0
+    stats.value.passRate = applyStats.passRate ?? 0
+
+    // 이번 주 면접 (Schedule)
+    try {
+      const scheduleData = await getMySchedules()
+      const now = new Date()
+      const weekStart = new Date(now)
+      weekStart.setDate(now.getDate() - now.getDay())
+      weekStart.setHours(0, 0, 0, 0)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 7)
+
+      stats.value.interviewsThisWeek = (scheduleData.schedules || []).filter(s => {
+        const scheduleDate = new Date(s.startTime || s.scheduledAt)
+        return scheduleDate >= weekStart && scheduleDate < weekEnd
+      }).length
+    } catch {
+      // 면접 조회 실패해도 무시
+    }
+  } catch (e) {
+    console.error('사용자 통계 로드 실패:', e)
+  }
+}
+
 // 인기 공고 로드
 async function loadHotJobpostings() {
   try {
@@ -163,8 +198,14 @@ onMounted(async () => {
     if (authStore.isAdmin) {
       await Promise.all([loadUserStats(), loadAuditStats()])
     } else {
-      // User / Company: 인기 공고 + 최신 공고
-      await Promise.all([loadHotJobpostings(), loadRecentJobpostings()])
+      const promises: Promise<void>[] = [loadHotJobpostings(), loadRecentJobpostings()]
+
+      // User: 지원 통계 로드
+      if (authStore.isUser) {
+        promises.push(loadUserDashboardStats())
+      }
+
+      await Promise.all(promises)
     }
   } finally {
     loading.value = false
