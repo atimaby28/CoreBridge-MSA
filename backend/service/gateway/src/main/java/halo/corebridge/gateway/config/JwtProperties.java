@@ -1,4 +1,4 @@
-package halo.corebridge.jobpostingcomment.security;
+package halo.corebridge.gateway.config;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "jwt")
 public class JwtProperties {
+
     private String secret;
     private long accessTokenExpiration;
     private long refreshTokenExpiration;

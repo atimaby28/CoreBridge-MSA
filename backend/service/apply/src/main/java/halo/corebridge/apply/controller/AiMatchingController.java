@@ -16,17 +16,20 @@ public class AiMatchingController {
 
     private final AiMatchingService aiMatchingService;
 
+    // ============================================
+    // 회사용: 후보자 매칭
+    // ============================================
+
     /**
-     * JD에 맞는 후보자 매칭
+     * 채용공고 기반 후보자 매칭
      * POST /api/v1/ai-matching/match
      */
     @PostMapping("/match")
-    public ResponseEntity<BaseResponse<AiMatchingDto.MatchResponse>> matchCandidates(
-            @RequestBody AiMatchingDto.MatchRequest request) {
+    public ResponseEntity<BaseResponse<AiMatchingDto.MatchCandidatesResponse>> matchCandidates(
+            @RequestBody AiMatchingDto.MatchCandidatesRequest request) {
 
-        log.info("AI 매칭 요청: topK={}", request.getTopK());
-        AiMatchingDto.MatchResponse response = aiMatchingService.matchCandidates(request);
-
+        log.info("AI 후보자 매칭 요청: topK={}", request.getTopK());
+        AiMatchingDto.MatchCandidatesResponse response = aiMatchingService.matchCandidates(request);
         return ResponseEntity.ok(BaseResponse.success(response));
     }
 
@@ -44,22 +47,40 @@ public class AiMatchingController {
         if (response == null) {
             return ResponseEntity.notFound().build();
         }
+        return ResponseEntity.ok(BaseResponse.success(response));
+    }
 
+    // ============================================
+    // 구직자용: 채용공고 추천
+    // ============================================
+
+    /**
+     * 이력서 기반 채용공고 추천
+     * POST /api/v1/ai-matching/match-jobpostings
+     */
+    @PostMapping("/match-jobpostings")
+    public ResponseEntity<BaseResponse<AiMatchingDto.MatchJobpostingsResponse>> matchJobpostings(
+            @RequestBody AiMatchingDto.MatchJobpostingsRequest request) {
+
+        log.info("AI 채용공고 추천 요청: topK={}", request.getTopK());
+        AiMatchingDto.MatchJobpostingsResponse response = aiMatchingService.matchJobpostings(request);
         return ResponseEntity.ok(BaseResponse.success(response));
     }
 
     /**
-     * 채용공고 ID로 후보자 매칭
-     * GET /api/v1/ai-matching/jobposting/{jobpostingId}
+     * 스킬 갭 분석
+     * POST /api/v1/ai-matching/skill-gap
      */
-    @GetMapping("/jobposting/{jobpostingId}")
-    public ResponseEntity<BaseResponse<AiMatchingDto.MatchResponse>> matchByJobposting(
-            @PathVariable Long jobpostingId,
-            @RequestParam(defaultValue = "10") int topK) {
+    @PostMapping("/skill-gap")
+    public ResponseEntity<BaseResponse<AiMatchingDto.SkillGapResponse>> analyzeSkillGap(
+            @RequestBody AiMatchingDto.SkillGapRequest request) {
 
-        log.info("채용공고 기반 매칭 요청: jobpostingId={}, topK={}", jobpostingId, topK);
-        AiMatchingDto.MatchResponse response = aiMatchingService.matchByJobpostingId(jobpostingId, topK);
+        log.info("스킬 갭 분석 요청: candidateId={}, jobpostingId={}", request.getCandidateId(), request.getJobpostingId());
+        AiMatchingDto.SkillGapResponse response = aiMatchingService.analyzeSkillGap(request);
 
+        if (response == null) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(BaseResponse.success(response));
     }
 }

@@ -1,6 +1,7 @@
 package halo.corebridge.jobposting.service;
 
 import halo.corebridge.common.snowflake.Snowflake;
+import halo.corebridge.jobposting.client.AiServiceClient;
 import halo.corebridge.jobposting.model.dto.JobpostingDto;
 import halo.corebridge.jobposting.model.entity.Jobposting;
 import halo.corebridge.jobposting.repository.JobpostingRepository;
@@ -18,6 +19,7 @@ public class JobpostingService {
 
     private final Snowflake snowflake = new Snowflake();
     private final JobpostingRepository jobpostingRepository;
+    private final AiServiceClient aiServiceClient;
 
     // ============================================
     // 생성
@@ -43,6 +45,11 @@ public class JobpostingService {
         );
 
         log.info("채용공고 생성: jobpostingId={}, userId={}", jobposting.getJobpostingId(), userId);
+
+        // AI 서비스에 채용공고 벡터 저장 (비동기)
+        String fullText = buildJobpostingText(request.getTitle(), request.getContent(),
+                request.getRequiredSkills(), request.getPreferredSkills());
+        aiServiceClient.saveJobpostingAsync(jobposting.getJobpostingId(), fullText);
 
         return JobpostingDto.JobpostingResponse.from(jobposting);
     }
@@ -73,6 +80,11 @@ public class JobpostingService {
         );
 
         log.info("채용공고 수정: jobpostingId={}, userId={}", jobpostingId, userId);
+
+        // AI 서비스에 채용공고 벡터 재저장 (비동기)
+        String fullText = buildJobpostingText(request.getTitle(), request.getContent(),
+                request.getRequiredSkills(), request.getPreferredSkills());
+        aiServiceClient.saveJobpostingAsync(jobpostingId, fullText);
 
         return JobpostingDto.JobpostingResponse.from(jobposting);
     }
@@ -119,14 +131,24 @@ public class JobpostingService {
      */
     @Transactional(readOnly = true)
     public JobpostingDto.JobpostingPageResponse readAll(Long boardId, Long page, Long pageSize) {
+        long offset = (page - 1) * pageSize;
+        long limit = PageLimitCalculator.calculatePageLimit(page, pageSize, 10L);
+
+        // boardId=1은 "전체" 게시판 → 모든 공고 조회
+        if (boardId == 1L) {
+            return JobpostingDto.JobpostingPageResponse.of(
+                    jobpostingRepository.findAllBoards(offset, pageSize).stream()
+                            .map(JobpostingDto.JobpostingResponse::from)
+                            .toList(),
+                    jobpostingRepository.countAll(limit)
+            );
+        }
+
         return JobpostingDto.JobpostingPageResponse.of(
-                jobpostingRepository.findAll(boardId, (page - 1) * pageSize, pageSize).stream()
+                jobpostingRepository.findAll(boardId, offset, pageSize).stream()
                         .map(JobpostingDto.JobpostingResponse::from)
                         .toList(),
-                jobpostingRepository.count(
-                        boardId,
-                        PageLimitCalculator.calculatePageLimit(page, pageSize, 10L)
-                )
+                jobpostingRepository.count(boardId, limit)
         );
     }
 
@@ -165,5 +187,22 @@ public class JobpostingService {
             return null;
         }
         return "[\"" + String.join("\",\"", skills) + "\"]";
+    }
+
+    /**
+     * 채용공고 정보를 AI 임베딩용 텍스트로 조합
+     */
+    private String buildJobpostingText(String title, String content,
+                                       List<String> requiredSkills, List<String> preferredSkills) {
+        StringBuilder sb = new StringBuilder();
+        if (title != null) sb.append(title).append("\n");
+        if (content != null) sb.append(content).append("\n");
+        if (requiredSkills != null && !requiredSkills.isEmpty()) {
+            sb.append("필수 스킬: ").append(String.join(", ", requiredSkills)).append("\n");
+        }
+        if (preferredSkills != null && !preferredSkills.isEmpty()) {
+            sb.append("우대 스킬: ").append(String.join(", ", preferredSkills)).append("\n");
+        }
+        return sb.toString();
     }
 }

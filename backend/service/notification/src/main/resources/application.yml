@@ -29,6 +29,12 @@ jwt:
   access-token-expiration: 1800000
   refresh-token-expiration: 604800000
 
+# Audit 설정
+audit:
+  enabled: true
+  service-name: notification
+  service-url: http://localhost:8013
+
 logging:
   level:
     root: INFO

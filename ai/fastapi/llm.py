@@ -3,7 +3,7 @@ import re
 import json
 import ollama
 
-GEN_MODEL = os.getenv("GEN_MODEL", "tinyllama")  # override by env in app.py
+GEN_MODEL = os.getenv("GEN_MODEL", "llama3")  # override by env in app.py
 
 def summarize(text: str) -> str:
     prompt = f"""

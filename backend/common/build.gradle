@@ -12,6 +12,8 @@ dependencies {
 
     // Security (SecurityContext 조회용)
     api 'org.springframework.security:spring-security-core'
+    api 'org.springframework.security:spring-security-web'
+    api 'org.springframework.security:spring-security-config'
 
     // AOP (@Async 등)
     api 'org.springframework.boot:spring-boot-starter-aop'

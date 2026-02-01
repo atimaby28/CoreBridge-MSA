@@ -27,6 +27,11 @@ notification:
   service:
     url: http://localhost:8011
 
+audit:
+  enabled: true
+  service-name: schedule
+  service-url: http://localhost:8013
+
 logging:
   level:
     halo.corebridge.schedule: DEBUG

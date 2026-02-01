@@ -1,7 +1,7 @@
 package halo.corebridge.jobpostingview.config;
 
 import halo.corebridge.common.audit.filter.AuditLoggingFilter;
-import halo.corebridge.jobpostingview.security.JwtAuthenticationFilter;
+import halo.corebridge.common.security.GatewayAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -14,12 +14,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -27,53 +21,37 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuditLoggingFilter auditLoggingFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 조회수 조회는 인증 없이 허용
-                        .requestMatchers(HttpMethod.GET, "/api/v1/jobposting-views/**").permitAll()
-                        
-                        // 조회수 증가는 인증 필요
-                        .requestMatchers(HttpMethod.POST, "/api/v1/jobposting-views/**").authenticated()
-                        
-                        // Actuator, Health check 허용
+                        // 조회수 조회는 공개
+                        .requestMatchers(HttpMethod.GET, "/api/v1/jobposting-views/jobpostings/*/count").permitAll()
                         .requestMatchers("/actuator/**", "/health/**").permitAll()
-                        
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(auditLoggingFilter, JwtAuthenticationFilter.class);
+                .addFilterBefore(gatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(auditLoggingFilter, GatewayAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public FilterRegistrationBean<AuditLoggingFilter> auditLoggingFilterRegistration(
-            AuditLoggingFilter filter) {
-        FilterRegistrationBean<AuditLoggingFilter> registration = new FilterRegistrationBean<>(filter);
-        registration.setEnabled(false);
-        return registration;
+    public GatewayAuthenticationFilter gatewayAuthenticationFilter() {
+        return new GatewayAuthenticationFilter();
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+    public FilterRegistrationBean<AuditLoggingFilter> auditLoggingFilterRegistration(AuditLoggingFilter filter) {
+        FilterRegistrationBean<AuditLoggingFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 }

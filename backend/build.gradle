@@ -9,7 +9,7 @@ description = 'CoreBridge Backend MSA'
 
 ext {
     lombokVersion = '1.18.36'
-    springBootVersion = '3.5.9'
+    springBootVersion = '3.4.1' // 3.5.9 → 3.4.1 Spring Gateway
 }
 
 subprojects {
