@@ -6,11 +6,31 @@ import type { BaseResponse } from '@/types'
 // ============================================
 const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8000'
 
+// ============================================
+// Refresh Token 동시 호출 방지
+// ============================================
+let isRefreshing = false
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void
+  reject: (reason?: unknown) => void
+}> = []
+
+function processQueue(error: unknown) {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve()
+    }
+  })
+  failedQueue = []
+}
+
 // Axios 인스턴스 생성 (Gateway 통합)
 function createApiInstance(): AxiosInstance {
   const instance = axios.create({
     baseURL: GATEWAY_URL,
-    timeout: 10000,
+    timeout: 30000,
     headers: {
       'Content-Type': 'application/json',
     },
@@ -38,12 +58,23 @@ function createApiInstance(): AxiosInstance {
     async (error) => {
       const originalRequest = error.config
 
-      // 401 에러 && 재시도 안 한 요청 && refresh 요청이 아닌 경우
-      if (error.response?.status === 401 && 
-          !originalRequest._retry && 
-          !originalRequest.url?.includes('/refresh')) {
-        
+      // refresh 요청 자체가 실패한 경우 → 바로 reject (무한 루프 차단)
+      if (originalRequest.url?.includes('/refresh')) {
+        return Promise.reject(error)
+      }
+
+      // 401 에러 && 재시도 안 한 요청
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        // 이미 refresh 진행 중이면 큐에 대기
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject })
+          }).then(() => instance(originalRequest))
+            .catch((err) => Promise.reject(err))
+        }
+
         originalRequest._retry = true
+        isRefreshing = true
 
         try {
           // 토큰 갱신 요청 (Gateway 경유)
@@ -53,12 +84,22 @@ function createApiInstance(): AxiosInstance {
             { withCredentials: true }
           )
 
+          // 대기 중인 요청 모두 재시도
+          processQueue(null)
+
           // 원래 요청 재시도
           return instance(originalRequest)
         } catch (refreshError) {
-          // 갱신 실패 시 로그인 페이지로
-          window.location.href = '/auth/login'
+          // 대기 중인 요청 모두 실패 처리
+          processQueue(refreshError)
+
+          // 이미 로그인 페이지면 리다이렉트 안 함 (무한 루프 차단)
+          if (!window.location.pathname.startsWith('/auth')) {
+            window.location.href = '/auth/login'
+          }
           return Promise.reject(refreshError)
+        } finally {
+          isRefreshing = false
         }
       }
 
