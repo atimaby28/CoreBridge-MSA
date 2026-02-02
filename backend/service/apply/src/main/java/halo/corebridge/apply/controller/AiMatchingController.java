@@ -45,7 +45,9 @@ public class AiMatchingController {
         AiMatchingDto.ScoreResponse response = aiMatchingService.scoreCandidate(request);
 
         if (response == null) {
-            return ResponseEntity.notFound().build();
+            log.error("스코어 계산 결과 null: candidateId={}", request.getCandidateId());
+            return ResponseEntity.internalServerError()
+                    .body((BaseResponse) BaseResponse.failure(5000, "스코어 계산에 실패했습니다. AI 서비스 로그를 확인해주세요."));
         }
         return ResponseEntity.ok(BaseResponse.success(response));
     }
@@ -79,7 +81,9 @@ public class AiMatchingController {
         AiMatchingDto.SkillGapResponse response = aiMatchingService.analyzeSkillGap(request);
 
         if (response == null) {
-            return ResponseEntity.notFound().build();
+            log.error("스킬 갭 분석 결과 null: candidateId={}, jobpostingId={}", request.getCandidateId(), request.getJobpostingId());
+            return ResponseEntity.internalServerError()
+                    .body((BaseResponse) BaseResponse.failure(5000, "스킬 갭 분석에 실패했습니다. AI 서비스 로그를 확인해주세요."));
         }
         return ResponseEntity.ok(BaseResponse.success(response));
     }

@@ -99,8 +99,8 @@
                 </div>
               </div>
               <div class="text-right flex-shrink-0">
-                <div class="text-2xl font-bold text-blue-600">{{ (job.score * 100).toFixed(0) }}</div>
-                <div class="text-xs text-gray-500">매칭도</div>
+                <div class="text-2xl font-bold text-blue-600">{{ ((1 - job.score) * 100).toFixed(1) }}</div>
+                <div class="text-xs text-gray-500">벡터 유사도</div>
               </div>
             </div>
 

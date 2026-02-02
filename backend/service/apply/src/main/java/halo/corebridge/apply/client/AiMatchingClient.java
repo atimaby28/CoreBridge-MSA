@@ -1,8 +1,8 @@
 package halo.corebridge.apply.client;
 
 import halo.corebridge.apply.model.dto.AiMatchingDto;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -14,13 +14,16 @@ import java.util.*;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class AiMatchingClient {
 
     private final RestTemplate restTemplate;
 
     @Value("${ai.service.url:http://localhost:9001}")
     private String aiServiceUrl;
+
+    public AiMatchingClient(@Qualifier("aiRestTemplate") RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     /**
      * JD에 맞는 후보자 매칭 (회사용 - 벡터 검색)
@@ -40,10 +43,20 @@ public class AiMatchingClient {
                 List<AiMatchingDto.MatchedCandidate> candidates = new ArrayList<>();
 
                 for (Map<String, Object> match : matches) {
-                    candidates.add(AiMatchingDto.MatchedCandidate.builder()
+                    AiMatchingDto.MatchedCandidate.MatchedCandidateBuilder builder = AiMatchingDto.MatchedCandidate.builder()
                             .candidateId(String.valueOf(match.get("candidate_id")))
-                            .score(((Number) match.get("score")).doubleValue())
-                            .build());
+                            .score(((Number) match.get("score")).doubleValue());
+
+                    // FastAPI에서 user_id 메타데이터 포함 시
+                    if (match.containsKey("user_id") && match.get("user_id") != null) {
+                        builder.userId(String.valueOf(match.get("user_id")));
+                    }
+                    // FastAPI에서 resume_id 메타데이터 포함 시
+                    if (match.containsKey("resume_id") && match.get("resume_id") != null) {
+                        builder.resumeId(String.valueOf(match.get("resume_id")));
+                    }
+
+                    candidates.add(builder.build());
                 }
 
                 log.info("[AI Matching] 후보자 매칭 완료: {}명", candidates.size());
@@ -131,7 +144,7 @@ public class AiMatchingClient {
             return null;
 
         } catch (Exception e) {
-            log.error("[AI Matching] 스코어 계산 실패: candidateId={}, error={}", candidateId, e.getMessage());
+            log.error("[AI Matching] 스코어 계산 실패: candidateId={}, error={}", candidateId, e.getMessage(), e);
             return null;
         }
     }
@@ -165,7 +178,7 @@ public class AiMatchingClient {
             return null;
 
         } catch (Exception e) {
-            log.error("[AI Matching] 스킬 갭 분석 실패: {}", e.getMessage());
+            log.error("[AI Matching] 스킬 갭 분석 실패: {}", e.getMessage(), e);
             return null;
         }
     }

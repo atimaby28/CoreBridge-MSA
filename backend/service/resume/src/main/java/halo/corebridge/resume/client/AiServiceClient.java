@@ -30,18 +30,21 @@ public class AiServiceClient {
      * AI 서비스에 이력서 저장 (비동기)
      * - 임베딩 생성 및 Redis Vector DB 저장
      * - 스킬 태그 함께 저장
+     * - candidate_id = userId (사용자 기준 매칭)
      */
     @Async("aiServiceExecutor")
-    public void saveResumeAsync(Long resumeId, String resumeText, List<String> skills) {
+    public void saveResumeAsync(Long userId, Long resumeId, String resumeText, List<String> skills) {
         try {
-            log.info("[AI Service] 이력서 저장 요청 시작: resumeId={}", resumeId);
+            log.info("[AI Service] 이력서 저장 요청 시작: userId={}, resumeId={}", userId, resumeId);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> body = new HashMap<>();
-            body.put("candidate_id", String.valueOf(resumeId));
+            body.put("candidate_id", String.valueOf(userId));
             body.put("resume_text", resumeText);
+            body.put("user_id", String.valueOf(userId));
+            body.put("resume_id", String.valueOf(resumeId));
             if (skills != null && !skills.isEmpty()) {
                 body.put("skills", skills);
             }
@@ -51,10 +54,10 @@ public class AiServiceClient {
             String url = aiServiceUrl + "/save_resume";
             Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
 
-            log.info("[AI Service] 이력서 저장 완료: resumeId={}, response={}", resumeId, response);
+            log.info("[AI Service] 이력서 저장 완료: userId={}, response={}", userId, response);
 
         } catch (Exception e) {
-            log.error("[AI Service] 이력서 저장 실패: resumeId={}, error={}", resumeId, e.getMessage());
+            log.error("[AI Service] 이력서 저장 실패: userId={}, error={}", userId, e.getMessage());
         }
     }
 
@@ -127,7 +130,12 @@ public class AiServiceClient {
             // 2. 스킬 추출
             List<String> skills = extractSkills(resumeText);
 
-            log.info("[AI Service] 분석 완료: resumeId={}, skills={}", resumeId, skills);
+            if (summary == null && skills.isEmpty()) {
+                log.warn("[AI Service] 분석 결과 없음 (타임아웃 가능성): resumeId={}", resumeId);
+                return;
+            }
+
+            log.info("[AI Service] 분석 완료: resumeId={}, summary={}, skills={}", resumeId, summary != null, skills);
 
             // 3. 결과 저장 (별도 서비스 호출 - 트랜잭션 적용됨)
             aiAnalysisResultService.saveResult(resumeId, summary, skills);

@@ -31,6 +31,8 @@ export interface SkillGapRequest {
 export interface MatchedCandidate {
   candidateId: string
   score: number
+  userId?: string
+  resumeId?: string
   name?: string
   skills?: string[]
 }

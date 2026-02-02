@@ -32,6 +32,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**", "/health/**").permitAll()
+                        .requestMatchers("/api/v1/resumes/by-user/**").permitAll()  // 내부 서비스 호출용
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(gatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)

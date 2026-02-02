@@ -21,7 +21,6 @@ import lombok.NoArgsConstructor;
 public class ResumeVersion extends BaseTimeEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -42,8 +41,9 @@ public class ResumeVersion extends BaseTimeEntity {
     // Factory Method
     // ============================================
 
-    public static ResumeVersion create(Long resumeId, int version, String title, String content) {
+    public static ResumeVersion create(Long id, Long resumeId, int version, String title, String content) {
         ResumeVersion resumeVersion = new ResumeVersion();
+        resumeVersion.id = id;
         resumeVersion.resumeId = resumeId;
         resumeVersion.version = version;
         resumeVersion.title = title;
@@ -51,8 +51,8 @@ public class ResumeVersion extends BaseTimeEntity {
         return resumeVersion;
     }
 
-    public static ResumeVersion create(Long resumeId, int version, String title, String content, String memo) {
-        ResumeVersion resumeVersion = create(resumeId, version, title, content);
+    public static ResumeVersion create(Long id, Long resumeId, int version, String title, String content, String memo) {
+        ResumeVersion resumeVersion = create(id, resumeId, version, title, content);
         resumeVersion.memo = memo;
         return resumeVersion;
     }

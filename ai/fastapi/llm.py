@@ -1,19 +1,37 @@
 import os
 import re
 import json
+import httpx
 import ollama
 
 GEN_MODEL = os.getenv("GEN_MODEL", "llama3")  # override by env in app.py
 
-def summarize(text: str) -> str:
-    prompt = f"""
-다음 내용을 5줄 bullet point로 한국어 요약해줘.
-불필요한 내용 제외하고 핵심 정보만 포함:
+# Ollama 클라이언트에 타임아웃 설정 (60초)
+_ollama_client = ollama.Client(
+    host=os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434"),
+    timeout=httpx.Timeout(60.0, connect=5.0),
+)
 
+def summarize(text: str) -> str:
+    prompt = f"""You are a Korean-language assistant. You MUST respond ONLY in Korean (한국어).
+Do NOT use English at all. Summarize the following content as 5 bullet points in Korean.
+Include only key information, exclude unnecessary details.
+
+[Content to summarize]
 {text}
+
+[Instructions]
+- Output MUST be in Korean only (한국어로만 작성)
+- Use bullet points (•)
+- Maximum 5 points
+- Be concise and specific
 """
-    resp = ollama.generate(model=GEN_MODEL, prompt=prompt)
-    return resp.get("response", "").strip()
+    try:
+        resp = _ollama_client.generate(model=GEN_MODEL, prompt=prompt)
+        return resp.get("response", "").strip()
+    except Exception as e:
+        print(f"[LLM] summarize timeout/error: {e}")
+        return ""
 
 CANONICAL_SKILLS = [
     "Java","Spring","Spring Boot","JPA","Hibernate","MySQL","MariaDB","PostgreSQL",
@@ -27,22 +45,25 @@ SKILL_REGEX = re.compile(
 )
 
 def extract_skills(text: str) -> list[str]:
-    prompt = f"""
-아래 문서에서 기술 스택(언어/프레임워크/DB/DevOps 도구)만 JSON 배열로 출력.
-예: ["Java","Spring","AWS"]
-추측 금지, 문서에 실제 등장한 기술만:
+    prompt = f"""Extract ONLY technology stack names (programming languages, frameworks, databases, DevOps tools) from the document below.
+Output as a JSON array of strings. Only include technologies that actually appear in the text. Do NOT guess.
 
+Example output: ["Java","Spring Boot","AWS","Docker"]
+
+Document:
 {text}
-"""
+
+JSON array:"""
     try:
-        resp = ollama.generate(model=GEN_MODEL, prompt=prompt).get("response","")
+        resp = _ollama_client.generate(model=GEN_MODEL, prompt=prompt).get("response","")
         arr = re.search(r"\[.*\]", resp, re.DOTALL)
         if arr:
             parsed = json.loads(arr.group(0))
             return [str(x).strip() for x in parsed if isinstance(x,(str,))]
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[LLM] extract_skills timeout/error, using regex fallback: {e}")
 
+    # Regex fallback — LLM 실패 시에도 스킬 추출 가능
     hits = set(m.group(0) for m in SKILL_REGEX.finditer(text or ""))
     normalized = set()
     for h in hits:

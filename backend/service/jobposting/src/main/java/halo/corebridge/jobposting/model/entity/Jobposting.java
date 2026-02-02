@@ -16,8 +16,13 @@ import java.time.LocalDateTime;
 public class Jobposting extends BaseTimeEntity {
     @Id
     private Long jobpostingId;
+
+    @Column(length = 500)
     private String title;
+
+    @Column(columnDefinition = "TEXT")
     private String content;
+
     private Long boardId; // shard key
     private Long userId;
 
