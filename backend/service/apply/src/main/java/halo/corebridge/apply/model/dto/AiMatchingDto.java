@@ -79,6 +79,8 @@ public class AiMatchingDto {
     @AllArgsConstructor
     public static class MatchedCandidate {
         private String candidateId;
+        private String userId;
+        private String resumeId;
         private Double score;
         private String name;
         private List<String> skills;
