@@ -4,8 +4,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { adminUserService } from '@/api/user'
 import { getAuditStats, getRecentAudits, type AuditStatsResponse, type AuditResponse } from '@/api/audit'
-import { hotService, readService } from '@/api/jobposting'
-import { getUserApplyStats } from '@/api/apply'
+import { hotService, readService, jobpostingService } from '@/api/jobposting'
+import { getUserApplyStats, getCompanyProcessStats } from '@/api/apply'
 import { getMySchedules } from '@/api/schedule'
 import type { HotJobpostingResponse, JobpostingReadResponse } from '@/types/jobposting'
 
@@ -30,12 +30,20 @@ const recentAudits = ref<AuditResponse[]>([])
 const hotJobpostings = ref<HotJobpostingResponse[]>([])
 const recentJobpostings = ref<JobpostingReadResponse[]>([])
 
-// User/Company 통계
+// User 통계
 const stats = ref({
   totalApplications: 0,
   pendingApplications: 0,
   interviewsThisWeek: 0,
   passRate: 0,
+})
+
+// Company 통계
+const companyStats = ref({
+  activeJobpostings: 0,
+  totalApplicants: 0,
+  interviewingApplicants: 0,
+  passedApplicants: 0,
 })
 
 const loading = ref(true)
@@ -128,6 +136,29 @@ async function loadUserDashboardStats() {
   }
 }
 
+// Company 통계 로드
+async function loadCompanyDashboardStats() {
+  if (!authStore.isCompany) return
+
+  try {
+    // 1. 내 채용공고 목록 가져오기
+    const myJobs = await jobpostingService.getMyJobpostings()
+    const jobpostings = myJobs.jobpostings || []
+    companyStats.value.activeJobpostings = jobpostings.length
+
+    // 2. 공고가 있으면 통합 통계 조회
+    if (jobpostings.length > 0) {
+      const ids = jobpostings.map(j => j.jobpostingId)
+      const result = await getCompanyProcessStats(ids)
+      companyStats.value.totalApplicants = result.totalApplicants ?? 0
+      companyStats.value.interviewingApplicants = result.interviewingApplicants ?? 0
+      companyStats.value.passedApplicants = result.passedApplicants ?? 0
+    }
+  } catch (e) {
+    console.error('기업 통계 로드 실패:', e)
+  }
+}
+
 // 인기 공고 로드
 async function loadHotJobpostings() {
   try {
@@ -203,6 +234,11 @@ onMounted(async () => {
       // User: 지원 통계 로드
       if (authStore.isUser) {
         promises.push(loadUserDashboardStats())
+      }
+
+      // Company: 기업 통계 로드
+      if (authStore.isCompany) {
+        promises.push(loadCompanyDashboardStats())
       }
 
       await Promise.all(promises)
@@ -418,7 +454,7 @@ onMounted(async () => {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-500">진행중 공고</p>
-              <p class="text-2xl font-bold text-gray-900">0</p>
+              <p class="text-2xl font-bold text-gray-900">{{ companyStats.activeJobpostings }}</p>
             </div>
             <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,7 +468,7 @@ onMounted(async () => {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-500">총 지원자</p>
-              <p class="text-2xl font-bold text-green-600">0</p>
+              <p class="text-2xl font-bold text-green-600">{{ companyStats.totalApplicants }}</p>
             </div>
             <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -446,7 +482,7 @@ onMounted(async () => {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-500">면접 예정</p>
-              <p class="text-2xl font-bold text-yellow-600">0</p>
+              <p class="text-2xl font-bold text-yellow-600">{{ companyStats.interviewingApplicants }}</p>
             </div>
             <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -460,7 +496,7 @@ onMounted(async () => {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-500">채용 완료</p>
-              <p class="text-2xl font-bold text-purple-600">0</p>
+              <p class="text-2xl font-bold text-purple-600">{{ companyStats.passedApplicants }}</p>
             </div>
             <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

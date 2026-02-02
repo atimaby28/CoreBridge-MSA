@@ -11,10 +11,15 @@
 
     <div v-if="loading" class="text-center py-8">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-      <p class="mt-2 text-sm text-gray-500">분석 중...</p>
+      <p class="mt-2 text-sm text-gray-500">분석 중... (최대 1~2분 소요)</p>
     </div>
 
-    <template v-else-if="score">
+    <div v-else-if="!score" class="text-center py-8">
+      <p class="text-gray-500">분석 결과를 불러오지 못했습니다.</p>
+      <button @click="$emit('close')" class="mt-3 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">닫기</button>
+    </div>
+
+    <template v-else>
       <!-- 등급 & 총점 -->
       <div class="flex items-center justify-center gap-6">
         <div :class="['w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold border-4', gradeColor]">
@@ -82,7 +87,7 @@
         </div>
       </div>
 
-      <div class="text-center text-sm text-gray-500">벡터 유사도: {{ (score.cosineSimilarity * 100).toFixed(1) }}%</div>
+      <div class="text-center text-sm text-gray-500">코사인 유사도: {{ matchScore !== null ? (matchScore * 100).toFixed(1) : '-' }}%</div>
     </template>
   </div>
 </template>
@@ -94,6 +99,7 @@ import { GradeColors } from '@/types/aiMatching'
 
 const props = defineProps<{
   score: AiScoreResponse | null
+  matchScore: number | null
   loading: boolean
 }>()
 

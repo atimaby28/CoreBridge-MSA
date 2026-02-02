@@ -21,7 +21,7 @@
           {{ (gap.matchRate * 100).toFixed(0) }}%
         </div>
         <div class="text-sm text-gray-500 mt-1">스킬 매치율</div>
-        <div class="text-xs text-gray-400 mt-1">벡터 유사도: {{ (gap.cosineSimilarity * 100).toFixed(1) }}%</div>
+        <div class="text-xs text-gray-400 mt-1">코사인 유사도: {{ (gap.cosineSimilarity * 100).toFixed(1) }}%</div>
       </div>
 
       <!-- 매칭된 스킬 -->

@@ -51,7 +51,12 @@
               {{ index + 1 }}
             </div>
             <div>
-              <div class="font-medium text-gray-900">후보자 #{{ match.candidateId }}</div>
+              <div class="font-medium text-gray-900">
+                {{ match.name || `지원자 (ID: ${match.userId || match.candidateId})` }}
+                <span v-if="match.resumeId" class="ml-2 text-xs text-gray-400 font-normal">
+                  이력서 #{{ match.resumeId }}
+                </span>
+              </div>
               <div v-if="match.skills?.length" class="flex flex-wrap gap-1 mt-1">
                 <span
                   v-for="skill in match.skills.slice(0, 5)"
@@ -63,8 +68,8 @@
             </div>
           </div>
           <div class="text-right">
-            <div class="text-2xl font-bold text-purple-600">{{ (match.score * 100).toFixed(0) }}</div>
-            <div class="text-xs text-gray-500">유사도</div>
+            <div class="text-2xl font-bold text-purple-600">{{ ((1 - match.score) * 100).toFixed(1) }}</div>
+            <div class="text-xs text-gray-500">벡터 유사도</div>
           </div>
         </div>
       </div>
