@@ -59,13 +59,21 @@ def create_index():
 # 이력서 저장/조회/검색
 # ============================================
 
-def save_resume(candidate_id: str, embedding: list[float], resume_text: str) -> None:
+def save_resume(candidate_id: str, embedding: list[float], resume_text: str, skills: list[str] = None, user_id: str = None, resume_id: str = None) -> None:
     key = f"{RESUME_PREFIX}{candidate_id}"
     vec = np.asarray(embedding, dtype=np.float32).tobytes()
-    r.hset(key, mapping={
+    mapping = {
         "embedding": vec,
         "resume_text": resume_text.encode("utf-8"),
-    })
+    }
+    if skills:
+        import json
+        mapping["skills"] = json.dumps(skills).encode("utf-8")
+    if user_id:
+        mapping["user_id"] = user_id.encode("utf-8")
+    if resume_id:
+        mapping["resume_id"] = resume_id.encode("utf-8")
+    r.hset(key, mapping=mapping)
 
 
 def get_resume(candidate_id: str):
@@ -75,11 +83,19 @@ def get_resume(candidate_id: str):
         return None
     emb_bytes = data.get(b"embedding")
     txt_bytes = data.get(b"resume_text")
+    skills_bytes = data.get(b"skills")
     emb = None
     if emb_bytes:
         emb = np.frombuffer(emb_bytes, dtype=np.float32)
     resume_text = txt_bytes.decode("utf-8") if txt_bytes else ""
-    return {"embedding": emb, "resume_text": resume_text}
+    skills = None
+    if skills_bytes:
+        import json
+        try:
+            skills = json.loads(skills_bytes.decode("utf-8"))
+        except Exception:
+            skills = None
+    return {"embedding": emb, "resume_text": resume_text, "skills": skills}
 
 
 def search_similar_resumes(embedding: list[float], k: int = 5):
@@ -135,8 +151,17 @@ def _vector_search(index_name: str, embedding: list[float], k: int = 5):
 
     out = []
     for doc in res.docs:
-        out.append({
+        item = {
             "key": doc.id,
             "score": float(getattr(doc, "score", 0.0)),
-        })
+        }
+        # user_id 메타데이터가 있으면 포함
+        raw_uid = r.hget(doc.id, "user_id")
+        if raw_uid:
+            item["user_id"] = raw_uid.decode("utf-8") if isinstance(raw_uid, bytes) else str(raw_uid)
+        # resume_id 메타데이터가 있으면 포함
+        raw_rid = r.hget(doc.id, "resume_id")
+        if raw_rid:
+            item["resume_id"] = raw_rid.decode("utf-8") if isinstance(raw_rid, bytes) else str(raw_rid)
+        out.append(item)
     return out

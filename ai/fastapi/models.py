@@ -25,12 +25,18 @@ class TextInput(BaseModel):
 class ResumeInput(BaseModel):
     candidate_id: str
     resume_text: str
+    skills: Optional[List[str]] = None
+    user_id: Optional[str] = None
+    resume_id: Optional[str] = None
 
     model_config = {
         "json_schema_extra": {
             "example": {
                 "candidate_id": "1",
-                "resume_text": "5년차 백엔드 개발자. Java, Spring Boot 전문…"
+                "resume_text": "5년차 백엔드 개발자. Java, Spring Boot 전문…",
+                "skills": ["Java", "Spring Boot", "JPA"],
+                "user_id": "1234567890",
+                "resume_id": "9876543210"
             }
         }
     }
@@ -86,6 +92,8 @@ class MatchCandidatesRequest(BaseModel):
 class MatchItem(BaseModel):
     candidate_id: str
     score: float
+    user_id: Optional[str] = None
+    resume_id: Optional[str] = None
 
 
 class MatchCandidatesResponse(BaseModel):

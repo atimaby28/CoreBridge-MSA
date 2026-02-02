@@ -145,7 +145,7 @@ def api_save_resume(req: ResumeInput):
     with REQUEST_LATENCY.labels(endpoint).time():
         try:
             emb = embed(req.resume_text)
-            save_resume(req.candidate_id, emb, req.resume_text)
+            save_resume(req.candidate_id, emb, req.resume_text, req.skills, req.user_id, req.resume_id)
             return {"status": "saved", "candidate_id": req.candidate_id}
         except Exception:
             ERROR_COUNT.labels(endpoint=endpoint).inc()
@@ -202,10 +202,15 @@ def api_match_candidates(req: MatchCandidatesRequest):
 
             formatted = []
             for h in hits:
-                formatted.append({
+                item = {
                     "candidate_id": h["key"].replace("candidate:", ""),
                     "score": h["score"],
-                })
+                }
+                if "user_id" in h:
+                    item["user_id"] = h["user_id"]
+                if "resume_id" in h:
+                    item["resume_id"] = h["resume_id"]
+                formatted.append(item)
 
             MATCH_LAT.set((time.time() - t0) * 1000)
             return {"matches": formatted}
@@ -295,7 +300,7 @@ def api_score(req: ScoreRequest):
             cos = cosine(np.array(jd_emb, dtype=np.float32), cand_emb)
 
             jd_skills = req.required_skills or extract_skills(req.jd_text)
-            cand_skills = extract_skills(cand_text)
+            cand_skills = cand.get("skills") or extract_skills(cand_text)
 
             detail = rule_score(jd_skills, cand_skills, cos)
 
@@ -340,7 +345,7 @@ def api_skill_gap(req: SkillGapRequest):
             if not jp:
                 raise HTTPException(404, "jobposting not found")
 
-            cand_skills = extract_skills(cand["resume_text"])
+            cand_skills = cand.get("skills") or extract_skills(cand["resume_text"])
             req_skills = extract_skills(jp["jobposting_text"])
 
             cand_set = set(s.lower() for s in cand_skills)
