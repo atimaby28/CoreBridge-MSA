@@ -41,8 +41,9 @@ public class NotificationDto {
         private Long relatedId;
         private String relatedType;
 
-        public Notification toEntity() {
+        public Notification toEntity(Long id) {
             return Notification.builder()
+                    .id(id)
                     .userId(userId)
                     .type(type)
                     .title(title)

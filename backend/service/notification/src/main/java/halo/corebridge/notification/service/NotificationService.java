@@ -3,6 +3,7 @@ package halo.corebridge.notification.service;
 import halo.corebridge.notification.model.dto.NotificationDto;
 import halo.corebridge.notification.model.entity.Notification;
 import halo.corebridge.notification.repository.NotificationRepository;
+import halo.corebridge.common.snowflake.Snowflake;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,7 @@ import java.util.List;
 @Slf4j
 public class NotificationService {
 
+    private final Snowflake snowflake = new Snowflake();
     private final NotificationRepository notificationRepository;
 
     // ===================================================================
@@ -59,7 +61,7 @@ public class NotificationService {
     @Transactional
     public NotificationDto.CreateResponse create(NotificationDto.CreateRequest request) {
         try {
-            Notification notification = request.toEntity();
+            Notification notification = request.toEntity(snowflake.nextId());
             Notification saved = notificationRepository.save(notification);
 
             log.info("알림 생성 완료: userId={}, type={}, id={}",
