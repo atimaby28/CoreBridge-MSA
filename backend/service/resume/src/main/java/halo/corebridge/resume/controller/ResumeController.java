@@ -92,4 +92,17 @@ public class ResumeController {
             @RequestBody ResumeDto.AiResultRequest request) {
         return BaseResponse.success(resumeService.updateAiResult(resumeId, request));
     }
+
+    // ============================================
+    // 내부 서비스 API (서비스 간 통신용)
+    // ============================================
+
+    /**
+     * userId로 이력서 조회 (내부 서비스용)
+     * GET /api/v1/resumes/by-user/{userId}
+     */
+    @GetMapping("/by-user/{userId}")
+    public BaseResponse<ResumeDto.ResumeResponse> getByUserId(@PathVariable Long userId) {
+        return BaseResponse.success(resumeService.getOrCreate(userId));
+    }
 }

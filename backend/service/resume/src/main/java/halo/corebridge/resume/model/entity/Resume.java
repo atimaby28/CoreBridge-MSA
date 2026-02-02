@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 public class Resume extends BaseTimeEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -67,8 +66,9 @@ public class Resume extends BaseTimeEntity {
     // Factory Methods
     // ============================================
 
-    public static Resume create(Long userId) {
+    public static Resume create(Long id, Long userId) {
         Resume resume = new Resume();
+        resume.id = id;
         resume.userId = userId;
         resume.title = "내 이력서";
         resume.status = ResumeStatus.DRAFT;
@@ -76,8 +76,9 @@ public class Resume extends BaseTimeEntity {
         return resume;
     }
 
-    public static Resume create(Long userId, String title, String content) {
+    public static Resume create(Long id, Long userId, String title, String content) {
         Resume resume = new Resume();
+        resume.id = id;
         resume.userId = userId;
         resume.title = title;
         resume.content = content;

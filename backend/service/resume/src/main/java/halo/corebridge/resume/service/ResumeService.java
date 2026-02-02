@@ -6,6 +6,7 @@ import halo.corebridge.resume.model.entity.Resume;
 import halo.corebridge.resume.model.entity.ResumeVersion;
 import halo.corebridge.resume.repository.ResumeRepository;
 import halo.corebridge.resume.repository.ResumeVersionRepository;
+import halo.corebridge.common.snowflake.Snowflake;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class ResumeService {
 
+    private final Snowflake snowflake = new Snowflake();
     private final ResumeRepository resumeRepository;
     private final ResumeVersionRepository versionRepository;
     private final AiServiceClient aiServiceClient;
@@ -36,7 +38,7 @@ public class ResumeService {
         Resume resume = resumeRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     log.info("사용자 {}의 이력서 생성", userId);
-                    Resume newResume = Resume.create(userId);
+                    Resume newResume = Resume.create(snowflake.nextId(), userId);
                     return resumeRepository.save(newResume);
                 });
 
@@ -68,6 +70,7 @@ public class ResumeService {
         // 현재 내용을 버전 스냅샷으로 저장
         if (resume.getContent() != null) {
             ResumeVersion version = ResumeVersion.create(
+                    snowflake.nextId(),
                     resume.getId(),
                     resume.getCurrentVersion(),
                     resume.getTitle(),
@@ -91,6 +94,7 @@ public class ResumeService {
         // AI 서비스에 이력서 저장 (비동기)
         if (request.getContent() != null && !request.getContent().isBlank()) {
             aiServiceClient.saveResumeAsync(
+                resume.getUserId(),
                 resume.getId(),
                 request.getContent(),
                 request.getSkills()
@@ -150,6 +154,7 @@ public class ResumeService {
 
         // 현재 내용을 버전 스냅샷으로 저장
         ResumeVersion currentSnapshot = ResumeVersion.create(
+                snowflake.nextId(),
                 resume.getId(),
                 resume.getCurrentVersion(),
                 resume.getTitle(),
