@@ -1,6 +1,7 @@
 package halo.corebridge.jobposting.config;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
@@ -8,6 +9,7 @@ import org.springframework.web.client.RestTemplate;
 public class RestTemplateConfig {
 
     @Bean
+    @Primary
     public RestTemplate restTemplate() {
         return new RestTemplate();
     }
