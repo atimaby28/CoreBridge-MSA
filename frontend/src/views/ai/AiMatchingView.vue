@@ -3,12 +3,8 @@
     <div class="max-w-6xl mx-auto px-4">
       <!-- 헤더 -->
       <div class="mb-8">
-        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          🤖 AI 이력서 매칭
-        </h1>
-        <p class="text-gray-500 mt-1">
-          채용공고 내용을 입력하면 적합한 후보자를 AI가 매칭해드립니다.
-        </p>
+        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">🤖 AI 이력서 매칭</h1>
+        <p class="text-gray-500 mt-1">채용공고 내용을 입력하면 적합한 후보자를 AI가 매칭해드립니다.</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -17,11 +13,8 @@
           <div class="bg-white rounded-xl shadow-sm border p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">📋 채용공고 입력</h2>
 
-            <!-- JD 텍스트 -->
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                채용공고 내용
-              </label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">채용공고 내용</label>
               <textarea
                 v-model="jdText"
                 rows="10"
@@ -35,38 +28,26 @@
               ></textarea>
             </div>
 
-            <!-- 필수 스킬 (선택) -->
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                필수 스킬 (선택)
-              </label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">필수 스킬 (선택)</label>
               <input
                 v-model="skillsInput"
                 type="text"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="Java, Spring Boot, MySQL (쉼표로 구분)"
               />
-              <p class="text-xs text-gray-500 mt-1">
-                입력하지 않으면 AI가 자동 추출합니다
-              </p>
+              <p class="text-xs text-gray-500 mt-1">입력하지 않으면 AI가 자동 추출합니다</p>
             </div>
 
-            <!-- 검색 개수 -->
             <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                검색 인원
-              </label>
-              <select
-                v-model="topK"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">검색 인원</label>
+              <select v-model="topK" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                 <option :value="5">상위 5명</option>
                 <option :value="10">상위 10명</option>
                 <option :value="20">상위 20명</option>
               </select>
             </div>
 
-            <!-- 매칭 버튼 -->
             <button
               @click="handleMatch"
               :disabled="!jdText.trim() || matching"
@@ -85,7 +66,6 @@
             </button>
           </div>
 
-          <!-- 사용 안내 -->
           <div class="bg-blue-50 rounded-xl p-4 border border-blue-100">
             <h4 class="font-medium text-blue-800 mb-2">💡 사용 방법</h4>
             <ul class="text-sm text-blue-700 space-y-1">
@@ -98,23 +78,13 @@
 
         <!-- 오른쪽: 결과 -->
         <div class="space-y-4">
-          <!-- 매칭 결과 -->
           <div class="bg-white rounded-xl shadow-sm border p-6">
-            <AiMatchingResult
-              :matches="matches"
-              :loading="matching"
-              @select="handleSelectCandidate"
-              @refresh="handleMatch"
-            />
+            <AiMatchingResult :matches="matches" :loading="matching" @select="handleSelectCandidate" @refresh="handleMatch" />
           </div>
 
           <!-- 상세 점수 모달 -->
           <div v-if="selectedCandidate" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <AiScoreDetail
-              :score="scoreResult"
-              :loading="scoring"
-              @close="selectedCandidate = null"
-            />
+            <AiScoreDetail :score="scoreResult" :loading="scoring" @close="selectedCandidate = null" />
           </div>
         </div>
       </div>
@@ -129,7 +99,6 @@ import type { MatchedCandidate, AiScoreResponse } from '@/types/aiMatching'
 import AiMatchingResult from '@/components/ai/AiMatchingResult.vue'
 import AiScoreDetail from '@/components/ai/AiScoreDetail.vue'
 
-// State
 const jdText = ref('')
 const skillsInput = ref('')
 const topK = ref(10)
@@ -139,19 +108,15 @@ const matches = ref<MatchedCandidate[]>([])
 const selectedCandidate = ref<MatchedCandidate | null>(null)
 const scoreResult = ref<AiScoreResponse | null>(null)
 
-// Computed
 const requiredSkills = computed(() => {
   if (!skillsInput.value.trim()) return undefined
   return skillsInput.value.split(',').map(s => s.trim()).filter(s => s)
 })
 
-// Methods
 async function handleMatch() {
   if (!jdText.value.trim()) return
-
   matching.value = true
   matches.value = []
-
   try {
     const response = await matchCandidates({
       jdText: jdText.value,
@@ -171,7 +136,6 @@ async function handleSelectCandidate(candidate: MatchedCandidate) {
   selectedCandidate.value = candidate
   scoring.value = true
   scoreResult.value = null
-
   try {
     scoreResult.value = await scoreCandidate({
       candidateId: candidate.candidateId,

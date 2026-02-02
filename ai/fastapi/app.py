@@ -9,9 +9,20 @@ from prometheus_client import (
     Counter, Histogram, Gauge, generate_latest, REGISTRY
 )
 
-# ---- 기존 Import ----
-from models import TextInput, ResumeInput, MatchRequest, ScoreRequest, SummaryResponse, SkillsResponse, MatchResponse, SaveResumeResponse, ScoreResponse
-from vector_store import create_index, save_resume, search_similar, get_resume
+from models import (
+    TextInput, ResumeInput, JobpostingInput,
+    MatchCandidatesRequest, MatchJobpostingsRequest,
+    ScoreRequest, SkillGapRequest,
+    SummaryResponse, SkillsResponse,
+    MatchCandidatesResponse, MatchJobpostingsResponse,
+    SaveResumeResponse, SaveJobpostingResponse,
+    ScoreResponse, SkillGapResponse,
+)
+from vector_store import (
+    create_index,
+    save_resume, get_resume, search_similar_resumes,
+    save_jobposting, get_jobposting, search_similar_jobpostings,
+)
 from llm import summarize, extract_skills
 from scoring import rule_score
 
@@ -21,35 +32,30 @@ import redis
 
 load_dotenv()
 
+# ============================================
+# FastAPI App
+# ============================================
+
 tags_metadata = [
-    {
-        "name": "Summary",
-        "description": "이력서/텍스트 요약을 수행하는 엔드포인트입니다.",
-    },
-    {
-        "name": "Skills",
-        "description": "텍스트에서 기술 스택을 추출하는 엔드포인트입니다.",
-    },
-    {
-        "name": "Matching",
-        "description": "JD 텍스트와 저장된 이력서를 벡터 기반으로 매칭합니다.",
-    },
-    {
-        "name": "Scoring",
-        "description": "JD와 후보자의 이력서를 기반으로 점수와 상세 평가를 계산합니다.",
-    },
-    {
-        "name": "Monitoring",
-        "description": "Prometheus용 메트릭 엔드포인트입니다. (Swagger에는 숨김 처리)",
-    },
+    {"name": "Resume", "description": "이력서 벡터 저장 및 조회"},
+    {"name": "Jobposting", "description": "채용공고 벡터 저장 및 조회"},
+    {"name": "Matching", "description": "양방향 매칭 (후보자↔채용공고)"},
+    {"name": "Scoring", "description": "후보자-채용공고 상세 점수 산출"},
+    {"name": "Skills", "description": "텍스트에서 기술 스택 추출"},
+    {"name": "Analysis", "description": "스킬 갭 분석"},
+    {"name": "Summary", "description": "텍스트 요약"},
 ]
 
 app = FastAPI(
     title="CoreBridge AI Matching Service",
-    description="Ollama + Redis + Vector Store 기반의 이력서-JD 매칭/스코어링 서비스",
-    version="1.0.0",
+    description="Ollama + Redis Vector 기반 양방향 이력서-채용공고 매칭/스코어링 서비스",
+    version="2.0.0",
     openapi_tags=tags_metadata,
 )
+
+# ============================================
+# Config
+# ============================================
 
 GEN_MODEL = os.getenv("GEN_MODEL", "llama3")
 EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "ollama")
@@ -65,55 +71,20 @@ if EMBEDDING_BACKEND == "openai":
     openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ============================================
-# 🔥 기존 메트릭
+# Prometheus Metrics
 # ============================================
 
-REQUEST_COUNT = Counter(
-    "ai_service_requests_total",
-    "Total number of requests per endpoint",
-    ["endpoint"]
-)
-
-REQUEST_LATENCY = Histogram(
-    "ai_service_request_latency_seconds",
-    "Latency of requests in seconds",
-    ["endpoint"]
-)
-
-OLLAMA_LATENCY = Gauge(
-    "ai_service_ollama_latency_ms",
-    "Latency of Ollama processing"
-)
-
-EMBEDDING_LATENCY = Gauge(
-    "ai_service_embedding_latency_ms",
-    "Latency of embedding generation"
-)
-
-# ============================================
-# 🔥 추가되는 파이프라인 메트릭
-# ============================================
-
-SUMMARY_LAT = Gauge("ai_service_summary_latency_ms", "Summary latency")
-SKILLS_LAT = Gauge("ai_service_skills_latency_ms", "Skills latency")
+REQUEST_COUNT = Counter("ai_service_requests_total", "Total requests per endpoint", ["endpoint"])
+REQUEST_LATENCY = Histogram("ai_service_request_latency_seconds", "Latency per endpoint", ["endpoint"])
+OLLAMA_LATENCY = Gauge("ai_service_ollama_latency_ms", "Ollama processing latency")
+EMBEDDING_LATENCY = Gauge("ai_service_embedding_latency_ms", "Embedding generation latency")
 MATCH_LAT = Gauge("ai_service_match_latency_ms", "Match latency")
 SCORE_LAT = Gauge("ai_service_score_latency_ms", "Score latency")
-
 REDIS_LAT = Gauge("ai_service_redis_latency_ms", "Redis latency")
-
-WORKFLOW_TOTAL = Gauge(
-    "ai_workflow_total_processing_ms",
-    "Entire n8n workflow total processing time"
-)
-
-ERROR_COUNT = Counter(
-    "ai_service_errors_total",
-    "Total errors in AI service",
-    ["endpoint"]
-)
+ERROR_COUNT = Counter("ai_service_errors_total", "Total errors", ["endpoint"])
 
 # ============================================
-# Utility: Embedding
+# Utility
 # ============================================
 
 def embed(text: str):
@@ -123,11 +94,8 @@ def embed(text: str):
             resp = ollama.embeddings(model=EMBEDDING_MODEL, prompt=text)
             emb = resp["embedding"]
         else:
-            resp = openai_client.embeddings.create(
-                model=EMBEDDING_MODEL, input=text
-            )
+            resp = openai_client.embeddings.create(model=EMBEDDING_MODEL, input=text)
             emb = resp.data[0].embedding
-
         EMBEDDING_LATENCY.set((time.time() - start) * 1000)
         return emb
     except:
@@ -142,115 +110,32 @@ def cosine(a: np.ndarray, b: np.ndarray) -> float:
         a = a.ravel()
     if b.ndim != 1:
         b = b.ravel()
-    denom = (np.linalg.norm(a) * np.linalg.norm(b))
+    denom = np.linalg.norm(a) * np.linalg.norm(b)
     if denom == 0:
         return 0.0
     return float(np.dot(a, b) / denom)
 
-create_index()
-
-# ============================================
-# 🔥 Redis latency 측정기
-# ============================================
 
 def measure_redis_latency():
     t0 = time.time()
     redis_client.ping()
     REDIS_LAT.set((time.time() - t0) * 1000)
 
+
+# 인덱스 생성
+create_index()
+
+
 # ============================================
-# 🔥 Endpoints
+# 이력서 저장 (구직자)
 # ============================================
-
-@app.post(
-    "/summary",
-    response_model=SummaryResponse,
-    tags=["Summary"],
-    summary="텍스트 요약",
-    description="입력 텍스트를 LLM(Ollama)을 사용해 한글 요약으로 변환합니다.",
-)
-def api_summary(req: TextInput):
-    endpoint = "/summary"
-    REQUEST_COUNT.labels(endpoint).inc()
-    measure_redis_latency()
-
-    with REQUEST_LATENCY.labels(endpoint).time():
-        t0 = time.time()
-        try:
-            result = summarize(req.text)
-            lat = (time.time() - t0) * 1000
-            SUMMARY_LAT.set(lat)
-            OLLAMA_LATENCY.set(lat)
-            return {"summary": result}
-        except:
-            ERROR_COUNT.labels(endpoint=endpoint).inc()
-            raise
-
-
-@app.post(
-    "/skills",
-    response_model=SkillsResponse,
-    tags=["Skills"],
-    summary="기술 스택 추출",
-    description="텍스트(이력서, JD 등)에서 기술 스택/키워드를 추출합니다.",
-)
-def api_skills(req: TextInput):
-    endpoint = "/skills"
-    REQUEST_COUNT.labels(endpoint).inc()
-    measure_redis_latency()
-
-    with REQUEST_LATENCY.labels(endpoint).time():
-        t0 = time.time()
-        try:
-            result = extract_skills(req.text)
-            lat = (time.time() - t0) * 1000
-            SKILLS_LAT.set(lat)
-            OLLAMA_LATENCY.set(lat)
-            return {"skills": result}
-        except:
-            ERROR_COUNT.labels(endpoint=endpoint).inc()
-            raise
-
-
-@app.post(
-    "/match_jd",
-    response_model=MatchResponse,
-    tags=["Matching"],
-)
-def api_match(req: MatchRequest):
-    endpoint = "/match_jd"
-    REQUEST_COUNT.labels(endpoint).inc()
-    measure_redis_latency()
-
-    with REQUEST_LATENCY.labels(endpoint).time():
-        t0 = time.time()
-        try:
-            jd_emb = embed(req.jd_text)
-            hits = search_similar(jd_emb, k=req.top_k)
-
-            # ---- 🔥 여기서 필드 변환 ----
-            formatted = []
-            for h in hits:
-                formatted.append({
-                    "candidate_id": h["key"].replace("candidate:", ""),
-                    "score": h["score"]
-                })
-
-            MATCH_LAT.set((time.time() - t0) * 1000)
-
-            return {"matches": formatted}
-
-        except:
-            ERROR_COUNT.labels(endpoint=endpoint).inc()
-            raise
-
 
 @app.post(
     "/save_resume",
     response_model=SaveResumeResponse,
-    tags=["Matching"],
+    tags=["Resume"],
     summary="이력서 벡터 저장",
-    description="후보자의 이력서를 임베딩 후 벡터 스토어에 저장합니다.",
+    description="구직자의 이력서를 임베딩 후 벡터 스토어에 저장합니다.",
 )
 def api_save_resume(req: ResumeInput):
     endpoint = "/save_resume"
@@ -259,31 +144,137 @@ def api_save_resume(req: ResumeInput):
 
     with REQUEST_LATENCY.labels(endpoint).time():
         try:
-            # embedding 처리
-            t0 = time.time()
             emb = embed(req.resume_text)
-            lat = (time.time() - t0) * 1000
-
-            # 임베딩 latency는 embed() 내부에서 이미 기록됨
-            # 별도 latency 메트릭을 만들지 않아도 됨
-
             save_resume(req.candidate_id, emb, req.resume_text)
-
-            return {
-                "status": "saved",
-                "candidate_id": req.candidate_id
-            }
-
+            return {"status": "saved", "candidate_id": req.candidate_id}
         except Exception:
             ERROR_COUNT.labels(endpoint=endpoint).inc()
             raise
+
+
+# ============================================
+# 채용공고 저장 (회사)
+# ============================================
+
+@app.post(
+    "/save_jobposting",
+    response_model=SaveJobpostingResponse,
+    tags=["Jobposting"],
+    summary="채용공고 벡터 저장",
+    description="채용공고를 임베딩 후 벡터 스토어에 저장합니다.",
+)
+def api_save_jobposting(req: JobpostingInput):
+    endpoint = "/save_jobposting"
+    REQUEST_COUNT.labels(endpoint).inc()
+    measure_redis_latency()
+
+    with REQUEST_LATENCY.labels(endpoint).time():
+        try:
+            emb = embed(req.jobposting_text)
+            save_jobposting(req.jobposting_id, emb, req.jobposting_text)
+            return {"status": "saved", "jobposting_id": req.jobposting_id}
+        except Exception:
+            ERROR_COUNT.labels(endpoint=endpoint).inc()
+            raise
+
+
+# ============================================
+# 후보자 매칭 (회사 → 후보자 검색)
+# ============================================
+
+@app.post(
+    "/match_candidates",
+    response_model=MatchCandidatesResponse,
+    tags=["Matching"],
+    summary="채용공고 기반 후보자 매칭",
+    description="채용공고 내용으로 유사한 이력서를 가진 후보자를 검색합니다.",
+)
+def api_match_candidates(req: MatchCandidatesRequest):
+    endpoint = "/match_candidates"
+    REQUEST_COUNT.labels(endpoint).inc()
+    measure_redis_latency()
+
+    with REQUEST_LATENCY.labels(endpoint).time():
+        t0 = time.time()
+        try:
+            jd_emb = embed(req.jd_text)
+            hits = search_similar_resumes(jd_emb, k=req.top_k)
+
+            formatted = []
+            for h in hits:
+                formatted.append({
+                    "candidate_id": h["key"].replace("candidate:", ""),
+                    "score": h["score"],
+                })
+
+            MATCH_LAT.set((time.time() - t0) * 1000)
+            return {"matches": formatted}
+        except:
+            ERROR_COUNT.labels(endpoint=endpoint).inc()
+            raise
+
+
+# ============================================
+# 기존 match_jd 호환 (회사 화면에서 사용 중)
+# ============================================
+
+@app.post(
+    "/match_jd",
+    response_model=MatchCandidatesResponse,
+    tags=["Matching"],
+    summary="[호환] 채용공고 기반 후보자 매칭",
+    description="match_candidates와 동일. 기존 호환용.",
+)
+def api_match_jd(req: MatchCandidatesRequest):
+    return api_match_candidates(req)
+
+
+# ============================================
+# 채용공고 매칭 (구직자 → 맞는 공고 검색)
+# ============================================
+
+@app.post(
+    "/match_jobpostings",
+    response_model=MatchJobpostingsResponse,
+    tags=["Matching"],
+    summary="이력서 기반 채용공고 추천",
+    description="구직자의 이력서로 유사한 채용공고를 검색합니다.",
+)
+def api_match_jobpostings(req: MatchJobpostingsRequest):
+    endpoint = "/match_jobpostings"
+    REQUEST_COUNT.labels(endpoint).inc()
+    measure_redis_latency()
+
+    with REQUEST_LATENCY.labels(endpoint).time():
+        t0 = time.time()
+        try:
+            resume_emb = embed(req.resume_text)
+            hits = search_similar_jobpostings(resume_emb, k=req.top_k)
+
+            formatted = []
+            for h in hits:
+                formatted.append({
+                    "jobposting_id": h["key"].replace("jobposting:", ""),
+                    "score": h["score"],
+                })
+
+            MATCH_LAT.set((time.time() - t0) * 1000)
+            return {"matches": formatted}
+        except:
+            ERROR_COUNT.labels(endpoint=endpoint).inc()
+            raise
+
+
+# ============================================
+# 스코어링 (회사용 상세 점수)
+# ============================================
 
 @app.post(
     "/score",
     response_model=ScoreResponse,
     tags=["Scoring"],
-    summary="후보자 점수 계산",
-    description="JD와 후보자 이력서를 기준으로 유사도/스킬 매칭을 계산하고 상세 점수를 반환합니다.",
+    summary="후보자 상세 점수 계산",
+    description="JD와 후보자 이력서를 기준으로 상세 점수를 반환합니다.",
 )
 def api_score(req: ScoreRequest):
     endpoint = "/score"
@@ -314,20 +305,131 @@ def api_score(req: ScoreRequest):
                 "required_skills": jd_skills,
                 "candidate_skills": cand_skills,
                 "cosine_similarity": round(cos, 4),
-                "score_detail": detail
+                "score_detail": detail,
             }
+        except HTTPException:
+            raise
         except:
             ERROR_COUNT.labels(endpoint=endpoint).inc()
             raise
 
 
 # ============================================
-# 🔥 metrics endpoint
+# 스킬 갭 분석 (구직자용)
 # ============================================
 
-@app.get(
-    "/metrics",
-    include_in_schema=False,     # ⬅ Swagger(/docs)에서 숨김
+@app.post(
+    "/skill_gap",
+    response_model=SkillGapResponse,
+    tags=["Analysis"],
+    summary="스킬 갭 분석",
+    description="구직자의 보유 스킬과 채용공고 요구 스킬을 비교하여 부족한 스킬을 분석합니다.",
 )
+def api_skill_gap(req: SkillGapRequest):
+    endpoint = "/skill_gap"
+    REQUEST_COUNT.labels(endpoint).inc()
+    measure_redis_latency()
+
+    with REQUEST_LATENCY.labels(endpoint).time():
+        try:
+            cand = get_resume(req.candidate_id)
+            if not cand:
+                raise HTTPException(404, "candidate not found")
+
+            jp = get_jobposting(req.jobposting_id)
+            if not jp:
+                raise HTTPException(404, "jobposting not found")
+
+            cand_skills = extract_skills(cand["resume_text"])
+            req_skills = extract_skills(jp["jobposting_text"])
+
+            cand_set = set(s.lower() for s in cand_skills)
+            req_set = set(s.lower() for s in req_skills)
+
+            matched = sorted(cand_set & req_set)
+            missing = sorted(req_set - cand_set)
+            match_rate = len(matched) / max(1, len(req_set))
+
+            # 코사인 유사도
+            cos = cosine(
+                np.array(cand["embedding"], dtype=np.float32) if cand["embedding"] is not None else np.zeros(1),
+                np.array(jp["embedding"], dtype=np.float32) if jp["embedding"] is not None else np.zeros(1),
+            )
+
+            return {
+                "candidate_id": req.candidate_id,
+                "jobposting_id": req.jobposting_id,
+                "candidate_skills": cand_skills,
+                "required_skills": req_skills,
+                "matched_skills": matched,
+                "missing_skills": missing,
+                "match_rate": round(match_rate, 3),
+                "cosine_similarity": round(cos, 4),
+            }
+        except HTTPException:
+            raise
+        except:
+            ERROR_COUNT.labels(endpoint=endpoint).inc()
+            raise
+
+
+# ============================================
+# 스킬 추출
+# ============================================
+
+@app.post(
+    "/skills",
+    response_model=SkillsResponse,
+    tags=["Skills"],
+    summary="기술 스택 추출",
+    description="텍스트에서 기술 스택/키워드를 추출합니다.",
+)
+def api_skills(req: TextInput):
+    endpoint = "/skills"
+    REQUEST_COUNT.labels(endpoint).inc()
+    measure_redis_latency()
+
+    with REQUEST_LATENCY.labels(endpoint).time():
+        try:
+            result = extract_skills(req.text)
+            OLLAMA_LATENCY.set(0)
+            return {"skills": result}
+        except:
+            ERROR_COUNT.labels(endpoint=endpoint).inc()
+            raise
+
+
+# ============================================
+# 요약
+# ============================================
+
+@app.post(
+    "/summary",
+    response_model=SummaryResponse,
+    tags=["Summary"],
+    summary="텍스트 요약",
+    description="입력 텍스트를 LLM을 사용해 한글 요약으로 변환합니다.",
+)
+def api_summary(req: TextInput):
+    endpoint = "/summary"
+    REQUEST_COUNT.labels(endpoint).inc()
+    measure_redis_latency()
+
+    with REQUEST_LATENCY.labels(endpoint).time():
+        t0 = time.time()
+        try:
+            result = summarize(req.text)
+            OLLAMA_LATENCY.set((time.time() - t0) * 1000)
+            return {"summary": result}
+        except:
+            ERROR_COUNT.labels(endpoint=endpoint).inc()
+            raise
+
+
+# ============================================
+# Metrics (Prometheus)
+# ============================================
+
+@app.get("/metrics", include_in_schema=False)
 def metrics():
     return Response(generate_latest(REGISTRY), media_type="text/plain")

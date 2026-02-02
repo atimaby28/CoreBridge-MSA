@@ -16,7 +16,7 @@ services:
     environment:
       - OLLAMA_HOST=http://host.docker.internal:11434
       - REDIS_HOST=redis
-      - GEN_MODEL=tinyllama
+      - GEN_MODEL=llama3
     depends_on:
       - redis
 

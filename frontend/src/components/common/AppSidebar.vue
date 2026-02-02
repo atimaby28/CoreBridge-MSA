@@ -83,6 +83,7 @@ const menuItems = computed<MenuItem[]>(() => {
       ],
     })
     items.push({ name: '이력서', icon: 'document-text', path: '/my/resume' })
+    items.push({ name: '🎯 AI 추천', icon: 'sparkles', path: '/my/ai-recommend' })
   }
 
   // 공통 - 내 정보

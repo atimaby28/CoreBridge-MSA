@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+
+# ============================================
+# 공통 Input
+# ============================================
+
 class TextInput(BaseModel):
     text: str
 
@@ -12,6 +17,11 @@ class TextInput(BaseModel):
         }
     }
 
+
+# ============================================
+# 이력서 저장 (구직자 이력서 → Redis Vector)
+# ============================================
+
 class ResumeInput(BaseModel):
     candidate_id: str
     resume_text: str
@@ -20,12 +30,45 @@ class ResumeInput(BaseModel):
         "json_schema_extra": {
             "example": {
                 "candidate_id": "1",
-                "resume_text": "양승우의 0년 경력 백엔드 개발자 이력서 텍스트…"
+                "resume_text": "5년차 백엔드 개발자. Java, Spring Boot 전문…"
             }
         }
     }
 
-class MatchRequest(BaseModel):
+
+class SaveResumeResponse(BaseModel):
+    status: str
+    candidate_id: str
+
+
+# ============================================
+# 채용공고 저장 (채용공고 → Redis Vector)
+# ============================================
+
+class JobpostingInput(BaseModel):
+    jobposting_id: str
+    jobposting_text: str
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "jobposting_id": "100",
+                "jobposting_text": "백엔드 개발자 채용. Java, Spring Boot, JPA 필수. Kafka, Kubernetes 우대."
+            }
+        }
+    }
+
+
+class SaveJobpostingResponse(BaseModel):
+    status: str
+    jobposting_id: str
+
+
+# ============================================
+# 후보자 매칭 (회사 → 후보자 검색)
+# ============================================
+
+class MatchCandidatesRequest(BaseModel):
     jd_text: str
     required_skills: Optional[List[str]] = None
     top_k: int = 5
@@ -39,6 +82,47 @@ class MatchRequest(BaseModel):
         }
     }
 
+
+class MatchItem(BaseModel):
+    candidate_id: str
+    score: float
+
+
+class MatchCandidatesResponse(BaseModel):
+    matches: List[MatchItem]
+
+
+# ============================================
+# 채용공고 매칭 (구직자 → 맞는 공고 검색)
+# ============================================
+
+class MatchJobpostingsRequest(BaseModel):
+    resume_text: str
+    top_k: int = 5
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "resume_text": "Java, Spring Boot, JPA, Redis 경험 백엔드 개발자",
+                "top_k": 5
+            }
+        }
+    }
+
+
+class JobpostingMatchItem(BaseModel):
+    jobposting_id: str
+    score: float
+
+
+class MatchJobpostingsResponse(BaseModel):
+    matches: List[JobpostingMatchItem]
+
+
+# ============================================
+# 스코어링
+# ============================================
+
 class ScoreRequest(BaseModel):
     jd_text: str
     candidate_id: str
@@ -49,91 +133,20 @@ class ScoreRequest(BaseModel):
             "example": {
                 "candidate_id": "1",
                 "jd_text": "Spring Boot와 Docker 경험 필수",
-                "required_skills": ["spring", "docker"]
+                "required_skills": ["Spring Boot", "Docker"]
             }
         }
     }
 
-class SummaryResponse(BaseModel):
-    summary: str
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "summary": "이 지원자는 Java/Spring 기반의 백엔드 개발 경험을 보유하고 있으며..."
-            }
-        }
-    }
-
-
-class SkillsResponse(BaseModel):
-    skills: List[str]
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "skills": ["python", "fastapi", "docker", "aws"]
-            }
-        }
-    }
-
-class MatchItem(BaseModel):
-    candidate_id: str
-    score: float
-
-class MatchResponse(BaseModel):
-    matches: List[MatchItem]
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "matches": [
-                    {
-                        "candidate_id": "1",
-                        "score": 0.87,
-                        "resume_text": "백엔드 개발자로서 Spring Boot 기반..."
-                    },
-                    {
-                        "candidate_id": "2",
-                        "score": 0.81,
-                        "resume_text": "5년차 Java 개발자로서 REST API 개발 경험..."
-                    }
-                ]
-            }
-        }
-    }
-
-class SaveResumeResponse(BaseModel):
-    status: str
-    candidate_id: str
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "status": "saved",
-                "candidate_id": "1"
-            }
-        }
-    }
 
 class ScoreDetail(BaseModel):
     skill_ratio: float
     skill_score: float
-    sim_score: float
-    bonus: float
-    total: float
+    similarity_score: float
+    bonus_score: float
+    total_score: float
+    grade: str
 
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "skill_ratio": 1.0,
-                "skill_score": 60.0,
-                "sim_score": 20.0,
-                "bonus": 10.0,
-                "total": 90.0
-            }
-        }
-    }
 
 class ScoreResponse(BaseModel):
     candidate_id: str
@@ -142,20 +155,47 @@ class ScoreResponse(BaseModel):
     cosine_similarity: float
     score_detail: ScoreDetail
 
+
+# ============================================
+# 스킬 추출
+# ============================================
+
+class SkillsResponse(BaseModel):
+    skills: List[str]
+
+
+# ============================================
+# 스킬 갭 분석 (구직자용)
+# ============================================
+
+class SkillGapRequest(BaseModel):
+    candidate_id: str
+    jobposting_id: str
+
     model_config = {
         "json_schema_extra": {
             "example": {
-                "candidate_id": "123",
-                "required_skills": ["spring", "docker"],
-                "candidate_skills": ["spring", "docker", "redis"],
-                "cosine_similarity": 0.82,
-                "score_detail": {
-                    "skill_ratio": 1.0,
-                    "skill_score": 60.0,
-                    "sim_score": 20.0,
-                    "bonus": 10.0,
-                    "total": 90.0
-                }
+                "candidate_id": "1",
+                "jobposting_id": "100"
             }
         }
     }
+
+
+class SkillGapResponse(BaseModel):
+    candidate_id: str
+    jobposting_id: str
+    candidate_skills: List[str]
+    required_skills: List[str]
+    matched_skills: List[str]
+    missing_skills: List[str]
+    match_rate: float
+    cosine_similarity: float
+
+
+# ============================================
+# 요약 (유지)
+# ============================================
+
+class SummaryResponse(BaseModel):
+    summary: str
