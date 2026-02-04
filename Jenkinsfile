@@ -7,6 +7,7 @@ kind: Pod
 metadata:
     namespace: jenkins
 spec:
+    serviceAccountName: jenkins-sa
     restartPolicy: Never
     containers:
         - name: gradle
