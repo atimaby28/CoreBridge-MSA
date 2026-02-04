@@ -23,11 +23,6 @@ spec:
               - name: docker-config
                 mountPath: /kaniko/.docker
 
-        - name: kubectl
-          image: bitnami/kubectl:latest
-          command: ['cat']
-          tty: true
-
     volumes:
         - name: docker-config
           secret:
@@ -109,14 +104,14 @@ spec:
 
         stage('Deploy to K3s') {
             steps {
-                container('kubectl') {
-                    sh """
-                        kubectl set image deployment/corebridge-${params.SERVICE_NAME} \
-                            ${params.SERVICE_NAME}=${DOCKER_REGISTRY}/corebridge-${params.SERVICE_NAME}:${IMAGE_TAG} \
-                            -n ${NAMESPACE} || \
-                        echo "Deployment not found - apply yaml first"
-                    """
-                }
+                sh """
+                    curl -LO "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"
+                    chmod +x kubectl
+                    ./kubectl set image deployment/corebridge-${params.SERVICE_NAME} \
+                        ${params.SERVICE_NAME}=${DOCKER_REGISTRY}/corebridge-${params.SERVICE_NAME}:${IMAGE_TAG} \
+                        -n ${NAMESPACE} || \
+                    echo "Deployment not found - apply yaml first"
+                """
             }
         }
     }
