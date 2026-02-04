@@ -13,9 +13,6 @@ spec:
           image: gradle:8.9-jdk21
           command: ['cat']
           tty: true
-          volumeMounts:
-              - name: workspace
-                mountPath: /workspace
 
         - name: kaniko
           image: gcr.io/kaniko-project/executor:debug
@@ -24,8 +21,6 @@ spec:
           volumeMounts:
               - name: docker-config
                 mountPath: /kaniko/.docker
-              - name: workspace
-                mountPath: /workspace
 
         - name: kubectl
           image: bitnami/kubectl:latest
@@ -33,8 +28,6 @@ spec:
           tty: true
 
     volumes:
-        - name: workspace
-          emptyDir: {}
         - name: docker-config
           secret:
               secretName: regcred
@@ -78,12 +71,10 @@ spec:
 
         stage('Checkout') {
             steps {
-                container('gradle') {
-                    checkout([$class: 'GitSCM',
-                        branches: [[name: '*/feature/deploy']],
-                        userRemoteConfigs: [[url: "${GIT_URL}"]]
-                    ])
-                }
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/feature/deploy']],
+                    userRemoteConfigs: [[url: "${GIT_URL}"]]
+                ])
             }
         }
 
@@ -105,8 +96,8 @@ spec:
                 container('kaniko') {
                     sh """
                         /kaniko/executor \
-                            --context=dir:///workspace/backend \
-                            --dockerfile=/workspace/backend/Dockerfile \
+                            --context=\${WORKSPACE}/backend \
+                            --dockerfile=\${WORKSPACE}/backend/Dockerfile \
                             --build-arg=SERVICE_NAME=${params.SERVICE_NAME} \
                             --destination=${DOCKER_REGISTRY}/corebridge-${params.SERVICE_NAME}:${IMAGE_TAG} \
                             --destination=${DOCKER_REGISTRY}/corebridge-${params.SERVICE_NAME}:latest
