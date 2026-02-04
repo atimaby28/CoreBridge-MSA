@@ -1,0 +1,201 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "QPS - Requests per Second",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "bfc6n294u6by8c" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2,
+            "pointSize": 5, "showPoints": "auto", "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "rate(ai_service_requests_total[1m])", "legendFormat": "{{endpoint}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Latency - Average Response Time (s)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "bfc6n294u6by8c" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2,
+            "pointSize": 5, "showPoints": "auto", "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "rate(ai_service_request_latency_seconds_sum[1m]) / rate(ai_service_request_latency_seconds_count[1m])",
+          "legendFormat": "{{endpoint}}", "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Endpoint Latency Comparison (s)",
+      "type": "bargauge",
+      "datasource": { "type": "prometheus", "uid": "bfc6n294u6by8c" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "unit": "s",
+          "min": 0,
+          "max": 35,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 15 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "targets": [
+        {
+          "expr": "rate(ai_service_request_latency_seconds_sum[5m]) / rate(ai_service_request_latency_seconds_count[5m])",
+          "legendFormat": "{{endpoint}}", "refId": "A", "instant": true
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Ollama Processing Latency (ms)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "bfc6n294u6by8c" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2,
+            "pointSize": 5, "showPoints": "auto", "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "ai_service_ollama_latency_ms", "legendFormat": "Ollama Latency", "refId": "A" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Embedding Latency (ms)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "bfc6n294u6by8c" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2,
+            "pointSize": 5, "showPoints": "auto", "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "ai_service_embedding_latency_ms", "legendFormat": "Embedding Latency", "refId": "A" }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Error Count",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "bfc6n294u6by8c" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "red", "mode": "fixed" },
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2,
+            "pointSize": 5, "showPoints": "auto", "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "rate(ai_service_errors_total[1m])", "legendFormat": "{{endpoint}}", "refId": "A" }
+      ]
+    }
+  ],
+  "preload": false,
+  "refresh": "5s",
+  "schemaVersion": 42,
+  "tags": ["corebridge", "ai-pipeline"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "CoreBridge AI Pipeline Monitoring",
+  "uid": "ebe6cc20-0a06-4e91-b269-aae6c0139f8a",
+  "version": 2
+}
