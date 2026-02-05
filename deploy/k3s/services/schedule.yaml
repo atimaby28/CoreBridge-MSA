@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: corebridge-schedule
+  namespace: corebridge
+  labels:
+    app: corebridge-schedule
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: corebridge-schedule
+  template:
+    metadata:
+      labels:
+        app: corebridge-schedule
+    spec:
+      containers:
+        - name: schedule
+          image: atimaby12/corebridge-schedule:latest
+          ports:
+            - containerPort: 8012
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8012
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8012
+            initialDelaySeconds: 60
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: corebridge-schedule
+  namespace: corebridge
+spec:
+  type: ClusterIP
+  selector:
+    app: corebridge-schedule
+  ports:
+    - port: 8012
+      targetPort: 8012

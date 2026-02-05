@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: corebridge-jobposting-like
+  namespace: corebridge
+  labels:
+    app: corebridge-jobposting-like
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: corebridge-jobposting-like
+  template:
+    metadata:
+      labels:
+        app: corebridge-jobposting-like
+    spec:
+      containers:
+        - name: jobposting-like
+          image: atimaby12/corebridge-jobposting-like:latest
+          ports:
+            - containerPort: 8005
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8005
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8005
+            initialDelaySeconds: 60
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: corebridge-jobposting-like
+  namespace: corebridge
+spec:
+  type: ClusterIP
+  selector:
+    app: corebridge-jobposting-like
+  ports:
+    - port: 8005
+      targetPort: 8005
