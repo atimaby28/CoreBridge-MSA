@@ -1,0 +1,81 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:debug
+      command:
+        - /busybox/cat
+      tty: true
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+  volumes:
+    - name: docker-config
+      secret:
+        secretName: regcred
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+'''
+        }
+    }
+
+    environment {
+        DOCKER_REGISTRY = 'atimaby12'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        NAMESPACE = 'corebridge'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/feature/deploy']],
+                    userRemoteConfigs: [[url: 'https://github.com/atimaby28/CoreBridge-MSA.git']]
+                ])
+            }
+        }
+
+        stage('Build & Push Image') {
+            steps {
+                container('kaniko') {
+                    sh """
+                        /kaniko/executor \
+                            --context=\${WORKSPACE}/frontend \
+                            --dockerfile=\${WORKSPACE}/frontend/Dockerfile \
+                            --destination=${DOCKER_REGISTRY}/corebridge-frontend:${IMAGE_TAG} \
+                            --destination=${DOCKER_REGISTRY}/corebridge-frontend:latest
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to K3s') {
+            steps {
+                sh """
+                    curl -LO https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl
+                    chmod +x kubectl
+                    ./kubectl set image deployment/corebridge-frontend \
+                        frontend=${DOCKER_REGISTRY}/corebridge-frontend:${IMAGE_TAG} \
+                        -n ${NAMESPACE} || \
+                    echo "Deployment not found - apply yaml first"
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Frontend 배포 성공 (Build #${IMAGE_TAG})"
+        }
+        failure {
+            echo "❌ Frontend 배포 실패 (Build #${IMAGE_TAG})"
+        }
+    }
+}
