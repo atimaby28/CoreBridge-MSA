@@ -9,7 +9,7 @@ RUN npm ci
 
 # 소스 복사 및 빌드
 COPY . .
-RUN npm run build
+RUN npx vite build
 
 # Production stage
 FROM nginx:alpine
