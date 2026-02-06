@@ -1,6 +1,9 @@
 import os
 import time
+import uuid
+import json
 import numpy as np
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from dotenv import load_dotenv
@@ -44,12 +47,14 @@ tags_metadata = [
     {"name": "Skills", "description": "텍스트에서 기술 스택 추출"},
     {"name": "Analysis", "description": "스킬 갭 분석"},
     {"name": "Summary", "description": "텍스트 요약"},
+    {"name": "Async", "description": "n8n 비동기 처리 엔드포인트"},
+    {"name": "Callback", "description": "n8n 콜백 수신 (내부용)"},
 ]
 
 app = FastAPI(
     title="CoreBridge AI Matching Service",
     description="Ollama + Redis Vector 기반 양방향 이력서-채용공고 매칭/스코어링 서비스",
-    version="2.0.0",
+    version="3.0.0",
     openapi_tags=tags_metadata,
 )
 
@@ -63,6 +68,9 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+
+# n8n webhook base URL (같은 docker-compose 네트워크)
+N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL", "http://corebridge-n8n:5678")
 
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0)
 
@@ -82,6 +90,9 @@ MATCH_LAT = Gauge("ai_service_match_latency_ms", "Match latency")
 SCORE_LAT = Gauge("ai_service_score_latency_ms", "Score latency")
 REDIS_LAT = Gauge("ai_service_redis_latency_ms", "Redis latency")
 ERROR_COUNT = Counter("ai_service_errors_total", "Total errors", ["endpoint"])
+
+# Async-specific metrics
+ASYNC_DISPATCH_LAT = Histogram("ai_service_async_dispatch_seconds", "Async dispatch latency", ["endpoint"])
 
 # ============================================
 # Utility
@@ -127,7 +138,35 @@ create_index()
 
 
 # ============================================
-# 이력서 저장 (구직자)
+# n8n Async Helper
+# ============================================
+
+def dispatch_to_n8n(webhook_path: str, payload: dict) -> str:
+    """n8n webhook으로 비동기 작업 위임, task_id 반환"""
+    task_id = str(uuid.uuid4())
+    payload["task_id"] = task_id
+    payload["model"] = GEN_MODEL
+
+    # Redis에 초기 상태 저장
+    redis_client.setex(
+        f"task:{task_id}",
+        600,  # 10분 TTL
+        json.dumps({"status": "processing", "task_id": task_id})
+    )
+
+    try:
+        url = f"{N8N_WEBHOOK_URL}/webhook/{webhook_path}"
+        with httpx.Client(timeout=5.0) as client:
+            client.post(url, json=payload)
+    except Exception as e:
+        print(f"[n8n] dispatch error: {e}")
+        # n8n 호출 실패해도 task_id는 반환 (상태는 processing 유지)
+
+    return task_id
+
+
+# ============================================
+# 이력서 저장 (구직자) — 동기 (Ollama 미사용)
 # ============================================
 
 @app.post(
@@ -153,7 +192,7 @@ def api_save_resume(req: ResumeInput):
 
 
 # ============================================
-# 채용공고 저장 (회사)
+# 채용공고 저장 (회사) — 동기 (Ollama 미사용)
 # ============================================
 
 @app.post(
@@ -179,7 +218,7 @@ def api_save_jobposting(req: JobpostingInput):
 
 
 # ============================================
-# 후보자 매칭 (회사 → 후보자 검색)
+# 후보자 매칭 (회사 → 후보자 검색) — 동기 (Ollama 미사용)
 # ============================================
 
 @app.post(
@@ -235,7 +274,7 @@ def api_match_jd(req: MatchCandidatesRequest):
 
 
 # ============================================
-# 채용공고 매칭 (구직자 → 맞는 공고 검색)
+# 채용공고 매칭 (구직자 → 맞는 공고 검색) — 동기 (Ollama 미사용)
 # ============================================
 
 @app.post(
@@ -271,7 +310,7 @@ def api_match_jobpostings(req: MatchJobpostingsRequest):
 
 
 # ============================================
-# 스코어링 (회사용 상세 점수)
+# 스코어링 (회사용 상세 점수) — 동기 유지
 # ============================================
 
 @app.post(
@@ -320,7 +359,7 @@ def api_score(req: ScoreRequest):
 
 
 # ============================================
-# 스킬 갭 분석 (구직자용)
+# 스킬 갭 분석 (구직자용) — 동기 유지
 # ============================================
 
 @app.post(
@@ -379,7 +418,7 @@ def api_skill_gap(req: SkillGapRequest):
 
 
 # ============================================
-# 스킬 추출
+# 스킬 추출 — 동기 유지
 # ============================================
 
 @app.post(
@@ -405,7 +444,7 @@ def api_skills(req: TextInput):
 
 
 # ============================================
-# 요약
+# 요약 — 동기 유지
 # ============================================
 
 @app.post(
@@ -429,6 +468,202 @@ def api_summary(req: TextInput):
         except:
             ERROR_COUNT.labels(endpoint=endpoint).inc()
             raise
+
+
+# ============================================
+# ASYNC ENDPOINTS — n8n 비동기 처리
+# ============================================
+# 기존 동기 엔드포인트와 동일한 입력을 받되,
+# Ollama 처리를 n8n에 위임하고 즉시 task_id를 반환합니다.
+# 클라이언트는 /result/{task_id}로 결과를 폴링합니다.
+# ============================================
+
+@app.post(
+    "/async/summary",
+    tags=["Async"],
+    summary="[비동기] 텍스트 요약",
+    description="n8n을 통해 비동기로 요약을 수행합니다. task_id를 즉시 반환합니다.",
+)
+def async_summary(req: TextInput):
+    endpoint = "/async/summary"
+    REQUEST_COUNT.labels(endpoint).inc()
+
+    with ASYNC_DISPATCH_LAT.labels(endpoint).time():
+        task_id = dispatch_to_n8n("ai-summary", {"text": req.text})
+        return {"task_id": task_id, "status": "processing", "poll_url": f"/result/{task_id}"}
+
+
+@app.post(
+    "/async/skills",
+    tags=["Async"],
+    summary="[비동기] 기술 스택 추출",
+    description="n8n을 통해 비동기로 스킬을 추출합니다. task_id를 즉시 반환합니다.",
+)
+def async_skills(req: TextInput):
+    endpoint = "/async/skills"
+    REQUEST_COUNT.labels(endpoint).inc()
+
+    with ASYNC_DISPATCH_LAT.labels(endpoint).time():
+        task_id = dispatch_to_n8n("ai-skills", {"text": req.text})
+        return {"task_id": task_id, "status": "processing", "poll_url": f"/result/{task_id}"}
+
+
+@app.post(
+    "/async/score",
+    tags=["Async"],
+    summary="[비동기] 후보자 상세 점수 계산",
+    description="n8n을 통해 비동기로 점수를 계산합니다. task_id를 즉시 반환합니다.",
+)
+def async_score(req: ScoreRequest):
+    endpoint = "/async/score"
+    REQUEST_COUNT.labels(endpoint).inc()
+
+    with ASYNC_DISPATCH_LAT.labels(endpoint).time():
+        # candidate 정보를 미리 조회해서 n8n에 전달
+        cand = get_resume(req.candidate_id)
+        if not cand:
+            raise HTTPException(404, "candidate not found")
+
+        task_id = dispatch_to_n8n("ai-score", {
+            "candidate_id": req.candidate_id,
+            "jd_text": req.jd_text,
+            "candidate_text": cand["resume_text"],
+            "required_skills": req.required_skills or [],
+        })
+        return {"task_id": task_id, "status": "processing", "poll_url": f"/result/{task_id}"}
+
+
+@app.post(
+    "/async/skill_gap",
+    tags=["Async"],
+    summary="[비동기] 스킬 갭 분석",
+    description="n8n을 통해 비동기로 스킬 갭을 분석합니다. task_id를 즉시 반환합니다.",
+)
+def async_skill_gap(req: SkillGapRequest):
+    endpoint = "/async/skill_gap"
+    REQUEST_COUNT.labels(endpoint).inc()
+
+    with ASYNC_DISPATCH_LAT.labels(endpoint).time():
+        cand = get_resume(req.candidate_id)
+        if not cand:
+            raise HTTPException(404, "candidate not found")
+
+        jp = get_jobposting(req.jobposting_id)
+        if not jp:
+            raise HTTPException(404, "jobposting not found")
+
+        task_id = dispatch_to_n8n("ai-skillgap", {
+            "candidate_id": req.candidate_id,
+            "jobposting_id": req.jobposting_id,
+            "candidate_text": cand["resume_text"],
+            "jobposting_text": jp["jobposting_text"],
+        })
+        return {"task_id": task_id, "status": "processing", "poll_url": f"/result/{task_id}"}
+
+
+# ============================================
+# RESULT POLLING — 비동기 작업 결과 조회
+# ============================================
+
+@app.get(
+    "/result/{task_id}",
+    tags=["Async"],
+    summary="비동기 작업 결과 조회",
+    description="task_id로 비동기 작업의 상태 및 결과를 조회합니다.",
+)
+def get_result(task_id: str):
+    endpoint = "/result"
+    REQUEST_COUNT.labels(endpoint).inc()
+
+    raw = redis_client.get(f"task:{task_id}")
+    if not raw:
+        raise HTTPException(404, "task not found or expired")
+
+    return json.loads(raw)
+
+
+# ============================================
+# CALLBACK ENDPOINTS — n8n → FastAPI 결과 수신
+# ============================================
+# n8n이 Ollama 처리 완료 후 이 엔드포인트로 결과를 전달합니다.
+# Redis에 결과를 저장하여 /result/{task_id} 폴링으로 조회 가능합니다.
+# ============================================
+
+from pydantic import BaseModel
+from typing import Optional
+
+class CallbackPayload(BaseModel):
+    task_id: str
+    result: Optional[str] = None
+    error: Optional[str] = None
+
+
+@app.post("/callback/summary", tags=["Callback"], include_in_schema=False)
+def callback_summary(payload: CallbackPayload):
+    endpoint = "/callback/summary"
+    REQUEST_COUNT.labels(endpoint).inc()
+
+    data = {
+        "status": "completed",
+        "task_id": payload.task_id,
+        "summary": payload.result or "",
+    }
+    redis_client.setex(f"task:{payload.task_id}", 600, json.dumps(data))
+    OLLAMA_LATENCY.set(0)  # callback 시점에는 이미 처리 완료
+    return {"status": "ok"}
+
+
+@app.post("/callback/skills", tags=["Callback"], include_in_schema=False)
+def callback_skills(payload: CallbackPayload):
+    endpoint = "/callback/skills"
+    REQUEST_COUNT.labels(endpoint).inc()
+
+    # Ollama 응답에서 JSON 배열 파싱
+    import re
+    skills = []
+    if payload.result:
+        arr = re.search(r"\[.*\]", payload.result, re.DOTALL)
+        if arr:
+            try:
+                skills = json.loads(arr.group(0))
+            except:
+                skills = []
+
+    data = {
+        "status": "completed",
+        "task_id": payload.task_id,
+        "skills": skills,
+    }
+    redis_client.setex(f"task:{payload.task_id}", 600, json.dumps(data))
+    return {"status": "ok"}
+
+
+@app.post("/callback/score", tags=["Callback"], include_in_schema=False)
+def callback_score(payload: CallbackPayload):
+    endpoint = "/callback/score"
+    REQUEST_COUNT.labels(endpoint).inc()
+
+    data = {
+        "status": "completed",
+        "task_id": payload.task_id,
+        "score_result": payload.result or "",
+    }
+    redis_client.setex(f"task:{payload.task_id}", 600, json.dumps(data))
+    return {"status": "ok"}
+
+
+@app.post("/callback/skillgap", tags=["Callback"], include_in_schema=False)
+def callback_skillgap(payload: CallbackPayload):
+    endpoint = "/callback/skillgap"
+    REQUEST_COUNT.labels(endpoint).inc()
+
+    data = {
+        "status": "completed",
+        "task_id": payload.task_id,
+        "skillgap_result": payload.result or "",
+    }
+    redis_client.setex(f"task:{payload.task_id}", 600, json.dumps(data))
+    return {"status": "ok"}
 
 
 # ============================================

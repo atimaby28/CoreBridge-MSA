@@ -7,3 +7,4 @@ pydantic
 ollama
 openai>=1.40.0
 prometheus_client
+httpx
