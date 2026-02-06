@@ -17,7 +17,7 @@ public class JobpostingLikedEventHandler implements EventHandler<JobpostingLiked
 
     @Override
     public void handle(Event<JobpostingLikedEventPayload> event) {
-        JobpostingLikedEventPayload payload = event.getPayload();
+        JobpostingLikedEventPayload payload = (JobpostingLikedEventPayload) event.getPayload();
         readCache.updateLikeCount(payload.getJobpostingId(), payload.getLikeCount());
         log.info("[ReadHandler] JOBPOSTING_LIKED: jobpostingId={}, likeCount={}",
                 payload.getJobpostingId(), payload.getLikeCount());

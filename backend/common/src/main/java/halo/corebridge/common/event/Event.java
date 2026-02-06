@@ -1,13 +1,17 @@
 package halo.corebridge.common.event;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 @Getter
 @ToString
+@NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Event<T extends EventPayload> {
     private EventType type;
-    private T payload;
+    private Object payload;
 
     public static <T extends EventPayload> Event<T> of(EventType type, T payload) {
         Event<T> event = new Event<>();

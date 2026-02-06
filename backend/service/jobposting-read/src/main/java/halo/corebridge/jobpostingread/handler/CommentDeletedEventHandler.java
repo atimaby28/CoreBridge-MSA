@@ -17,7 +17,7 @@ public class CommentDeletedEventHandler implements EventHandler<CommentDeletedEv
 
     @Override
     public void handle(Event<CommentDeletedEventPayload> event) {
-        CommentDeletedEventPayload payload = event.getPayload();
+        CommentDeletedEventPayload payload = (CommentDeletedEventPayload) event.getPayload();
         readCache.decrementCommentCount(payload.getJobpostingId());
         log.info("[ReadHandler] COMMENT_DELETED: jobpostingId={}", payload.getJobpostingId());
     }

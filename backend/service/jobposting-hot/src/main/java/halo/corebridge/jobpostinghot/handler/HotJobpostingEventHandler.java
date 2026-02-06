@@ -39,7 +39,7 @@ public class HotJobpostingEventHandler implements EventHandler<EventPayload> {
     @Transactional
     public void handle(Event<EventPayload> event) {
         EventType type = event.getType();
-        EventPayload payload = event.getPayload();
+        EventPayload payload = (EventPayload) event.getPayload();
 
         switch (type) {
             case JOBPOSTING_CREATED -> handleCreated((JobpostingCreatedEventPayload) payload);
