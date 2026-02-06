@@ -17,7 +17,7 @@ public class JobpostingDeletedEventHandler implements EventHandler<JobpostingDel
 
     @Override
     public void handle(Event<JobpostingDeletedEventPayload> event) {
-        JobpostingDeletedEventPayload payload = event.getPayload();
+        JobpostingDeletedEventPayload payload = (JobpostingDeletedEventPayload) event.getPayload();
         readCache.removeJobposting(payload.getJobpostingId());
         log.info("[ReadHandler] JOBPOSTING_DELETED: jobpostingId={}", payload.getJobpostingId());
     }

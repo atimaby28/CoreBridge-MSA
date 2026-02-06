@@ -17,7 +17,7 @@ public class JobpostingViewedEventHandler implements EventHandler<JobpostingView
 
     @Override
     public void handle(Event<JobpostingViewedEventPayload> event) {
-        JobpostingViewedEventPayload payload = event.getPayload();
+        JobpostingViewedEventPayload payload = (JobpostingViewedEventPayload) event.getPayload();
         readCache.updateViewCount(payload.getJobpostingId(), payload.getViewCount());
         log.info("[ReadHandler] JOBPOSTING_VIEWED: jobpostingId={}, viewCount={}",
                 payload.getJobpostingId(), payload.getViewCount());

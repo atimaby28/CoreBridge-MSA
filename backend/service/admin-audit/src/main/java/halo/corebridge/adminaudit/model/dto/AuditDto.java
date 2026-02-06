@@ -2,8 +2,7 @@ package halo.corebridge.adminaudit.model.dto;
 
 import halo.corebridge.adminaudit.model.entity.AuditLog;
 import halo.corebridge.adminaudit.model.enums.AuditEventType;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +15,8 @@ public class AuditDto {
 
     @Getter
     @Builder
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @AllArgsConstructor
     public static class CreateRequest {
         private Long userId;
         private String userEmail;
@@ -33,6 +34,8 @@ public class AuditDto {
 
     @Getter
     @Builder
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @AllArgsConstructor
     public static class SearchRequest {
         private Long userId;
         private String serviceName;

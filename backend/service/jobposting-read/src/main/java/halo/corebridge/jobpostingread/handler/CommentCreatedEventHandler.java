@@ -17,7 +17,7 @@ public class CommentCreatedEventHandler implements EventHandler<CommentCreatedEv
 
     @Override
     public void handle(Event<CommentCreatedEventPayload> event) {
-        CommentCreatedEventPayload payload = event.getPayload();
+        CommentCreatedEventPayload payload = (CommentCreatedEventPayload) event.getPayload();
         readCache.incrementCommentCount(payload.getJobpostingId());
         log.info("[ReadHandler] COMMENT_CREATED: jobpostingId={}", payload.getJobpostingId());
     }

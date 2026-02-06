@@ -17,7 +17,7 @@ public class JobpostingUnlikedEventHandler implements EventHandler<JobpostingUnl
 
     @Override
     public void handle(Event<JobpostingUnlikedEventPayload> event) {
-        JobpostingUnlikedEventPayload payload = event.getPayload();
+        JobpostingUnlikedEventPayload payload = (JobpostingUnlikedEventPayload) event.getPayload();
         readCache.updateLikeCount(payload.getJobpostingId(), payload.getLikeCount());
         log.info("[ReadHandler] JOBPOSTING_UNLIKED: jobpostingId={}, likeCount={}",
                 payload.getJobpostingId(), payload.getLikeCount());
