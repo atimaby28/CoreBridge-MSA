@@ -1,5 +1,7 @@
 package halo.corebridge.jobpostingview.service;
 
+import halo.corebridge.common.event.*;
+import halo.corebridge.common.outboxmessagerelay.OutboxEventPublisher;
 import halo.corebridge.jobpostingview.entity.JobpostingViewCount;
 import halo.corebridge.jobpostingview.repository.JobpostingViewCountRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class JobpostingViewService {
     
     private final JobpostingViewCountRepository jobpostingViewCountRepository;
+    private final OutboxEventPublisher outboxEventPublisher;
 
     /**
      * 조회수 증가
@@ -26,10 +29,21 @@ public class JobpostingViewService {
             jobpostingViewCountRepository.save(
                 JobpostingViewCount.init(jobpostingId, 1L)
             );
-            return 1L;
         }
-        
-        return count(jobpostingId);
+
+        Long currentCount = count(jobpostingId);
+
+        // Outbox 이벤트 발행
+        outboxEventPublisher.publish(
+                EventType.JOBPOSTING_VIEWED,
+                JobpostingViewedEventPayload.builder()
+                        .jobpostingId(jobpostingId)
+                        .viewCount(currentCount)
+                        .build(),
+                jobpostingId
+        );
+
+        return currentCount;
     }
 
     /**

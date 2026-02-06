@@ -1,6 +1,7 @@
 package halo.corebridge.jobpostingread.service;
 
 import halo.corebridge.jobpostingread.client.*;
+import halo.corebridge.jobpostingread.handler.JobpostingReadCache;
 import halo.corebridge.jobpostingread.model.dto.JobpostingReadDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ public class JobpostingReadService {
     private final LikeClient likeClient;
     private final CommentClient commentClient;
     private final UserClient userClient;
+    private final JobpostingReadCache readCache;
 
     /**
      * 단일 채용공고 조회 (통계 포함)
@@ -49,11 +51,22 @@ public class JobpostingReadService {
     }
 
     /**
-     * Jobposting -> ReadResponse 변환 (각 서비스에서 통계 조회)
+     * Jobposting -> ReadResponse 변환
+     * 이벤트 캐시에 데이터가 있으면 우선 사용, 없으면 HTTP fallback
      */
     private JobpostingReadDto.Response toReadResponse(JobpostingClient.JobpostingResponse jobposting) {
         Long jobpostingId = jobposting.getJobpostingId();
-        
+
+        // 캐시 우선 조회, 없으면 HTTP fallback
+        Long viewCount = readCache.getViewCount(jobpostingId);
+        if (viewCount == null) viewCount = viewClient.count(jobpostingId);
+
+        Long likeCount = readCache.getLikeCount(jobpostingId);
+        if (likeCount == null) likeCount = likeClient.count(jobpostingId);
+
+        Long commentCount = readCache.getCommentCount(jobpostingId);
+        if (commentCount == null) commentCount = commentClient.count(jobpostingId);
+
         return JobpostingReadDto.Response.builder()
                 .jobpostingId(jobpostingId)
                 .title(jobposting.getTitle())
@@ -61,9 +74,9 @@ public class JobpostingReadService {
                 .boardId(jobposting.getBoardId())
                 .userId(jobposting.getUserId())
                 .nickname(userClient.getNickname(jobposting.getUserId()))
-                .viewCount(viewClient.count(jobpostingId))
-                .likeCount(likeClient.count(jobpostingId))
-                .commentCount(commentClient.count(jobpostingId))
+                .viewCount(viewCount)
+                .likeCount(likeCount)
+                .commentCount(commentCount)
                 .createdAt(jobposting.getCreatedAt())
                 .updatedAt(jobposting.getUpdatedAt())
                 .build();
