@@ -1,4 +1,10 @@
 spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   application:
     name: jobposting-hot-service
   datasource:
@@ -45,3 +51,6 @@ audit:
   enabled: true
   service-name: jobposting-hot
   service-url: http://localhost:8013
+# Outbox (소비자 서비스 - 비활성화)
+outbox:
+  enabled: false

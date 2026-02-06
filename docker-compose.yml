@@ -1,165 +1,54 @@
-version: '3.8'
+# ==========================================
+# CoreBridge-MSA 인프라 (root)
+# 실행: docker-compose up -d
+# ==========================================
 
 services:
-  # ==========================================
-  # Database
-  # ==========================================
+
   postgres:
     image: postgres:18-alpine
-    container_name: corebridge-db
+    container_name: corebridge-postgres
     environment:
       POSTGRES_USER: root
-      POSTGRES_PASSWORD: qwer123
-      POSTGRES_DB: corebridge
+      POSTGRES_PASSWORD: qwer1234
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - corebridge-network
 
-  # ==========================================
-  # Backend Services
-  # ==========================================
-  user-service:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: user
-    container_name: corebridge-user
+  redis:
+    image: redis/redis-stack-server
+    container_name: corebridge-redis
     ports:
-      - "8001:8001"
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: corebridge-zookeeper
+    ports:
+      - "2181:2181"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/corebridge
-    depends_on:
-      - postgres
-    networks:
-      - corebridge-network
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
 
-  jobposting-service:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: jobposting
-    container_name: corebridge-jobposting
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: corebridge-kafka
+    depends_on:
+      - zookeeper
     ports:
-      - "8002:8002"
+      - "9092:9092"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/corebridge
-    depends_on:
-      - postgres
-    networks:
-      - corebridge-network
-
-  application-service:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: application
-    container_name: corebridge-application
-    ports:
-      - "8003:8003"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/corebridge
-    depends_on:
-      - postgres
-    networks:
-      - corebridge-network
-
-  process-service:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: process
-    container_name: corebridge-process
-    ports:
-      - "8004:8004"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/corebridge
-    depends_on:
-      - postgres
-    networks:
-      - corebridge-network
-
-  schedule-service:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: schedule
-    container_name: corebridge-schedule
-    ports:
-      - "8005:8005"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/corebridge
-    depends_on:
-      - postgres
-    networks:
-      - corebridge-network
-
-  notification-service:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: notification
-    container_name: corebridge-notification
-    ports:
-      - "8006:8006"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/corebridge
-    depends_on:
-      - postgres
-    networks:
-      - corebridge-network
-
-  audit-service:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: admin-audit
-    container_name: corebridge-audit
-    ports:
-      - "8013:8013"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/corebridge
-    depends_on:
-      - postgres
-    networks:
-      - corebridge-network
-
-  # ==========================================
-  # Frontend
-  # ==========================================
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: corebridge-frontend
-    ports:
-      - "5173:80"
-    depends_on:
-      - user-service
-      - jobposting-service
-    networks:
-      - corebridge-network
-
-networks:
-  corebridge-network:
-    driver: bridge
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
 volumes:
   postgres_data:
+  redis_data:

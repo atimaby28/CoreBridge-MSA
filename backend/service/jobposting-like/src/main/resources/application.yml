@@ -2,6 +2,12 @@ server:
   port: 8005
 
 spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   application:
     name: jobposting-like
   datasource:
@@ -33,3 +39,7 @@ jwt:
 audit:
   enabled: true
   service-url: http://localhost:8013
+
+# Outbox Pattern (생산자 서비스 - 활성화)
+outbox:
+  enabled: true

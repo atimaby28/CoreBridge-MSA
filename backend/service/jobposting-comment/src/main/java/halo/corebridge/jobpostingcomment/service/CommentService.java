@@ -1,5 +1,7 @@
 package halo.corebridge.jobpostingcomment.service;
 
+import halo.corebridge.common.event.*;
+import halo.corebridge.common.outboxmessagerelay.OutboxEventPublisher;
 import halo.corebridge.common.snowflake.Snowflake;
 import halo.corebridge.jobpostingcomment.model.dto.CommentDto;
 import halo.corebridge.jobpostingcomment.model.entity.Comment;
@@ -15,6 +17,7 @@ import static java.util.function.Predicate.not;
 public class CommentService {
     private final Snowflake snowflake = new Snowflake();
     private final CommentRepository commentRepository;
+    private final OutboxEventPublisher outboxEventPublisher;
 
     @Transactional
     public CommentDto.CommentResponse create(CommentDto.CommentCreateRequest request, Long userId) {
@@ -28,6 +31,19 @@ public class CommentService {
                         userId  // SecurityContext에서 받은 userId 사용
                 )
         );
+
+        // Outbox 이벤트 발행
+        outboxEventPublisher.publish(
+                EventType.COMMENT_CREATED,
+                CommentCreatedEventPayload.builder()
+                        .commentId(comment.getCommentId())
+                        .jobpostingId(comment.getJobpostingId())
+                        .userId(userId)
+                        .content(comment.getContent())
+                        .build(),
+                comment.getJobpostingId()
+        );
+
         return CommentDto.CommentResponse.from(comment);
     }
 
@@ -64,6 +80,16 @@ public class CommentService {
                     } else {
                         deleteRecursively(comment);
                     }
+
+                    // Outbox 이벤트 발행
+                    outboxEventPublisher.publish(
+                            EventType.COMMENT_DELETED,
+                            CommentDeletedEventPayload.builder()
+                                    .commentId(commentId)
+                                    .jobpostingId(comment.getJobpostingId())
+                                    .build(),
+                            comment.getJobpostingId()
+                    );
                 });
     }
 

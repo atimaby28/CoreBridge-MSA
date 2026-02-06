@@ -2,6 +2,12 @@ server:
   port: 8007
 
 spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   application:
     name: jobposting-read-service
   autoconfigure:
@@ -37,3 +43,6 @@ audit:
 logging:
   level:
     halo.corebridge: DEBUG
+# Outbox (소비자 서비스 - 비활성화)
+outbox:
+  enabled: false

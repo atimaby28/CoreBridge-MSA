@@ -1,5 +1,7 @@
 package halo.corebridge.jobposting.service;
 
+import halo.corebridge.common.event.*;
+import halo.corebridge.common.outboxmessagerelay.OutboxEventPublisher;
 import halo.corebridge.common.snowflake.Snowflake;
 import halo.corebridge.jobposting.client.AiServiceClient;
 import halo.corebridge.jobposting.model.dto.JobpostingDto;
@@ -20,6 +22,7 @@ public class JobpostingService {
     private final Snowflake snowflake = new Snowflake();
     private final JobpostingRepository jobpostingRepository;
     private final AiServiceClient aiServiceClient;
+    private final OutboxEventPublisher outboxEventPublisher;
 
     // ============================================
     // 생성
@@ -45,6 +48,22 @@ public class JobpostingService {
         );
 
         log.info("채용공고 생성: jobpostingId={}, userId={}", jobposting.getJobpostingId(), userId);
+
+        // Outbox 이벤트 발행
+        outboxEventPublisher.publish(
+                EventType.JOBPOSTING_CREATED,
+                JobpostingCreatedEventPayload.builder()
+                        .jobpostingId(jobposting.getJobpostingId())
+                        .title(jobposting.getTitle())
+                        .content(jobposting.getContent())
+                        .boardId(jobposting.getBoardId())
+                        .userId(userId)
+                        .requiredSkills(jobposting.getRequiredSkills())
+                        .preferredSkills(jobposting.getPreferredSkills())
+                        .createdAt(jobposting.getCreatedAt())
+                        .build(),
+                jobposting.getBoardId()
+        );
 
         // AI 서비스에 채용공고 벡터 저장 (비동기)
         String fullText = buildJobpostingText(request.getTitle(), request.getContent(),
@@ -81,6 +100,22 @@ public class JobpostingService {
 
         log.info("채용공고 수정: jobpostingId={}, userId={}", jobpostingId, userId);
 
+        // Outbox 이벤트 발행
+        outboxEventPublisher.publish(
+                EventType.JOBPOSTING_UPDATED,
+                JobpostingUpdatedEventPayload.builder()
+                        .jobpostingId(jobpostingId)
+                        .title(jobposting.getTitle())
+                        .content(jobposting.getContent())
+                        .boardId(jobposting.getBoardId())
+                        .userId(userId)
+                        .requiredSkills(jobposting.getRequiredSkills())
+                        .preferredSkills(jobposting.getPreferredSkills())
+                        .updatedAt(jobposting.getUpdatedAt())
+                        .build(),
+                jobposting.getBoardId()
+        );
+
         // AI 서비스에 채용공고 벡터 재저장 (비동기)
         String fullText = buildJobpostingText(request.getTitle(), request.getContent(),
                 request.getRequiredSkills(), request.getPreferredSkills());
@@ -107,6 +142,16 @@ public class JobpostingService {
         validateOwner(jobposting, userId);
 
         jobpostingRepository.deleteById(jobpostingId);
+
+        // Outbox 이벤트 발행
+        outboxEventPublisher.publish(
+                EventType.JOBPOSTING_DELETED,
+                JobpostingDeletedEventPayload.builder()
+                        .jobpostingId(jobpostingId)
+                        .boardId(jobposting.getBoardId())
+                        .build(),
+                jobposting.getBoardId()
+        );
 
         log.info("채용공고 삭제: jobpostingId={}, userId={}", jobpostingId, userId);
     }

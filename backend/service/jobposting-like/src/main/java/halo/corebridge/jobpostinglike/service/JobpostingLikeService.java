@@ -1,5 +1,7 @@
 package halo.corebridge.jobpostinglike.service;
 
+import halo.corebridge.common.event.*;
+import halo.corebridge.common.outboxmessagerelay.OutboxEventPublisher;
 import halo.corebridge.common.snowflake.Snowflake;
 import halo.corebridge.jobpostinglike.dto.JobpostingLikeResponse;
 import halo.corebridge.jobpostinglike.entity.JobpostingLike;
@@ -17,6 +19,7 @@ public class JobpostingLikeService {
     private final Snowflake snowflake = new Snowflake();
     private final JobpostingLikeRepository jobpostingLikeRepository;
     private final JobpostingLikeCountRepository jobpostingLikeCountRepository;
+    private final OutboxEventPublisher outboxEventPublisher;
 
     /**
      * 좋아요 상태 조회
@@ -58,6 +61,18 @@ public class JobpostingLikeService {
                     JobpostingLikeCount.init(jobpostingId, 1L)
             );
         }
+
+        // Outbox 이벤트 발행
+        Long currentCount = count(jobpostingId);
+        outboxEventPublisher.publish(
+                EventType.JOBPOSTING_LIKED,
+                JobpostingLikedEventPayload.builder()
+                        .jobpostingId(jobpostingId)
+                        .userId(userId)
+                        .likeCount(currentCount)
+                        .build(),
+                jobpostingId
+        );
     }
 
     /**
@@ -69,6 +84,18 @@ public class JobpostingLikeService {
                 .ifPresent(like -> {
                     jobpostingLikeRepository.delete(like);
                     jobpostingLikeCountRepository.decrease(jobpostingId);
+
+                    // Outbox 이벤트 발행
+                    Long currentCount = count(jobpostingId);
+                    outboxEventPublisher.publish(
+                            EventType.JOBPOSTING_UNLIKED,
+                            JobpostingUnlikedEventPayload.builder()
+                                    .jobpostingId(jobpostingId)
+                                    .userId(userId)
+                                    .likeCount(currentCount)
+                                    .build(),
+                            jobpostingId
+                    );
                 });
     }
 }

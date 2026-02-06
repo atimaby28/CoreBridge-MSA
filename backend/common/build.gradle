@@ -18,6 +18,15 @@ dependencies {
     // AOP (@Async 등)
     api 'org.springframework.boot:spring-boot-starter-aop'
 
+    // Kafka (Outbox Message Relay)
+    api 'org.springframework.kafka:spring-kafka'
+
+    // Redis (Outbox Coordinator)
+    api 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Jackson (DataSerializer)
+    api 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
     // Validation
     api 'org.springframework.boot:spring-boot-starter-validation'
 
