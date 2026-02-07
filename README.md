@@ -3,13 +3,25 @@
 > Spring Boot MSA + Vue 3 + AI 기반 채용 프로세스 관리 플랫폼
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Vue](https://img.shields.io/badge/Vue-3-4FC08D.svg)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0-009688.svg)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-336791.svg)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+## 🌐 Live Demo
+
+**👉 [https://www.corebridge.cloud/home](https://www.corebridge.cloud/home)**
+
+별도 설치 없이 위 링크에서 주요 기능을 바로 체험할 수 있습니다.  
+데모 버전은 MSA 13개 서비스를 단일 Spring Boot 앱으로 통합한 경량 버전입니다. → [CoreBridge-Demo 저장소](https://github.com/atimaby28/CoreBridge-Demo)
+
+| 역할 | 이메일 | 비밀번호 |
+|------|--------|----------|
+| 관리자 | admin@demo.com | qwer1234 |
+| 구직자 | user@demo.com | qwer1234 |
+| 기업 | company@demo.com | qwer1234 |
 
 ---
 
@@ -26,7 +38,7 @@
 
 - **State Machine 패턴**: 복잡한 채용 단계를 안전하게 관리 (잘못된 상태 전이 원천 차단)
 - **AI 파이프라인**: n8n + FastAPI + Ollama LLM 기반 8단계 자동화 파이프라인
-- **MSA 아키텍처**: 13개 마이크로서비스로 구성된 확장 가능한 구조
+- **MSA 아키텍처**: API Gateway + 13개 마이크로서비스로 구성된 확장 가능한 구조
 - **실시간 알림**: 상태 변경 시 즉시 알림 (SSE + Redis Pub/Sub)
 - **감사 로그**: 모든 API 호출 자동 기록 (누가, 언제, 무엇을)
 - **모니터링**: Prometheus + Grafana 기반 실시간 성능 모니터링
@@ -39,21 +51,23 @@
 | 기술 | 버전 | 설명 |
 |------|------|------|
 | Java | 21 | LTS 버전 |
-| Spring Boot | 3.x | 메인 프레임워크 |
+| Spring Boot | 3.4.1 | 메인 프레임워크 |
+| Spring Cloud Gateway | - | API Gateway (JWT 인증 중앙화) |
 | Spring Data JPA | - | ORM |
 | Spring Batch | - | 배치 처리 (알림 재전송, 정리) |
 | PostgreSQL | 18+ | 메인 데이터베이스 |
-| Redis | 7+ | Pub/Sub, 캐싱, Vector DB |
-| Gradle | 8.x | 빌드 도구 |
+| Redis Stack | 7+ | Pub/Sub, 캐싱, Vector DB |
+| Kafka | 7.6 | 이벤트 스트리밍 (Outbox Pattern) |
+| Gradle | 8.x | 멀티 모듈 빌드 |
 
 ### AI/ML
 | 기술 | 설명 |
 |------|------|
-| FastAPI | AI 분석 서비스 |
+| FastAPI | AI 분석 서비스 (:9001) |
 | Ollama | 로컬 LLM (llama3.2) |
 | nomic-embed-text | 문장 임베딩 |
 | Redis Vector Search | 코사인 유사도 기반 JD 매칭 |
-| n8n | 워크플로우 자동화 |
+| n8n | 워크플로우 자동화 (:5678) |
 
 ### Frontend
 | 기술 | 버전 | 설명 |
@@ -67,9 +81,9 @@
 ### Infra & DevOps
 | 기술 | 설명 |
 |------|------|
-| Docker | 컨테이너화 |
-| Kubernetes | 오케스트레이션 |
-| Jenkins | CI/CD (Blue-Green 배포) |
+| Docker | 컨테이너화 (멀티 스테이지 빌드) |
+| K3s | 경량 Kubernetes (WSL2 환경) |
+| Jenkins | CI/CD (Kaniko 빌드 + Blue-Green 배포) |
 | Prometheus | 메트릭 수집 |
 | Grafana | 모니터링 대시보드 |
 
@@ -80,7 +94,14 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                    Frontend (Vue 3 + TypeScript)                        │
-│                         localhost:5173                                  │
+│                         :5173 / Nginx :80                              │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    API Gateway (Spring Cloud Gateway)                   │
+│                              :8000                                      │
+│                   JWT 인증 중앙화 + 라우팅                               │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -88,25 +109,30 @@
 │                     Backend Microservices (Spring Boot)                 │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  8001  │  8002  │  8003  │  8004  │  8005  │  8006  │  8007             │
-│  user  │  job   │  app   │ process│schedule│ notif  │ resume           │
+│  user  │  job   │comment │  view  │  like  │  hot   │  read            │
 ├────────┼────────┼────────┼────────┼────────┼────────┼──────────────────┤
-│  8008  │  8009  │  8010  │  8011  │  8012  │  8013  │                  │
-│  like  │  view  │  read  │  hot   │ comment│ audit  │                  │
+│  8008  │  8009  │  8011  │  8012  │  8013  │                           │
+│ resume │  apply │ notif  │schedule│ audit  │                           │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
               ┌─────────────────────┼─────────────────────┐
               ▼                     ▼                     ▼
 ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-│    PostgreSQL    │    │   Redis Stack    │    │   AI Pipeline    │
-│   (Main DB)      │    │ (Pub/Sub, Vector)│    │   (FastAPI)      │
+│    PostgreSQL    │    │   Redis Stack    │    │     Kafka        │
+│   :5432          │    │ :6379            │    │   :9092          │
+│  (서비스별 DB)    │    │ (Pub/Sub, Vector)│    │ (Outbox Pattern) │
 └──────────────────┘    └──────────────────┘    └──────────────────┘
                                                           │
-                                    ┌─────────────────────┼─────────────────────┐
-                                    ▼                     ▼                     ▼
-                          ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-                          │     n8n      │      │    Ollama    │      │    Redis     │
-                          │  Workflow    │      │  Local LLM   │      │  Vector DB   │
-                          └──────────────┘      └──────────────┘      └──────────────┘
+                          ┌───────────────────────────────┘
+                          ▼
+              ┌──────────────────┐
+              │   AI Pipeline    │
+              │  FastAPI :9001   │
+              ├──────────────────┤
+              │  Ollama :11434   │
+              │  n8n    :5678    │
+              │  Redis Vector DB │
+              └──────────────────┘
 ```
 
 ### AI 파이프라인 흐름 (8단계 자동화)
@@ -136,19 +162,32 @@
 
 | 포트 | 서비스 | 설명 |
 |------|--------|------|
+| 8000 | **gateway** | API Gateway (JWT 인증 중앙화, 라우팅) |
 | 8001 | **user** | 사용자 관리, 인증 (USER/COMPANY/ADMIN) |
 | 8002 | **jobposting** | 채용공고 CRUD |
-| 8003 | **application** | 지원서 관리 |
-| 8004 | **process** | ⭐ 채용 프로세스 상태관리 (State Machine) |
-| 8005 | **schedule** | 면접 일정 관리 |
-| 8006 | **notification** | 실시간 알림 |
-| 8007 | **resume** | 이력서 관리 |
-| 8008 | **jobposting-like** | 공고 좋아요/찜 |
-| 8009 | **jobposting-view** | 조회수 카운팅 |
-| 8010 | **jobposting-read** | 공고 상세 조회 (Aggregator) |
-| 8011 | **jobposting-hot** | 인기 공고 집계 |
-| 8012 | **jobposting-comment** | 댓글/답글 |
+| 8003 | **jobposting-comment** | 댓글/답글 |
+| 8004 | **jobposting-view** | 조회수 카운팅 |
+| 8005 | **jobposting-like** | 공고 좋아요/찜 |
+| 8006 | **jobposting-hot** | 인기 공고 집계 |
+| 8007 | **jobposting-read** | 공고 상세 조회 (Aggregator) |
+| 8008 | **resume** | 이력서 관리 |
+| 8009 | **apply** | ⭐ 지원서 관리 + 채용 프로세스 (State Machine) |
+| 8011 | **notification** | 실시간 알림 (SSE + Redis Pub/Sub) |
+| 8012 | **schedule** | 면접 일정 관리 |
 | 8013 | **admin-audit** | 감사 로그 |
+
+### 인프라 서비스
+
+| 포트 | 서비스 | 설명 |
+|------|--------|------|
+| 5432 | **PostgreSQL** | 메인 데이터베이스 (서비스별 DB 분리) |
+| 6379 | **Redis Stack** | Pub/Sub, 캐싱, Vector DB |
+| 9092 | **Kafka** | 이벤트 스트리밍 (Outbox Pattern) |
+| 9001 | **FastAPI** | AI 분석 서비스 |
+| 11434 | **Ollama** | 로컬 LLM |
+| 5678 | **n8n** | 워크플로우 자동화 |
+| 9090 | **Prometheus** | 메트릭 수집 |
+| 3000 | **Grafana** | 모니터링 대시보드 |
 
 ---
 
@@ -229,44 +268,57 @@ DOCUMENT_PASS   DOCUMENT_FAIL (종료)
 ### 사전 요구사항
 
 - Java 21+
-- Node.js 18+
+- Node.js 20+
 - PostgreSQL 18+
-- Docker (선택)
+- Docker & Docker Compose
 
-### 1. Docker Compose (권장)
+### 1. 인프라 실행 (Docker Compose)
 
 ```bash
-# 클론
-git clone https://github.com/yourusername/CoreBridge.git
-cd CoreBridge
+git clone https://github.com/atimaby28/CoreBridge-MSA.git
+cd CoreBridge-MSA
 
-# 실행
+# PostgreSQL + Redis + Kafka 실행
 docker-compose up -d
-
-# 접속
-# Frontend: http://localhost:5173
-# Backend:  http://localhost:8001~8013
 ```
 
-### 2. 로컬 실행
+### 2. AI 파이프라인 실행
 
 ```bash
-# 데이터베이스 설정
-psql -U postgres -f scripts/init-db.sql
+# Ollama 설치 & 모델 다운로드
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.2
+ollama pull nomic-embed-text
 
-# Backend 실행 (각 서비스)
+# FastAPI + n8n 실행
+cd ai/fastapi
+docker-compose up -d
+```
+
+### 3. 백엔드 실행
+
+```bash
+# 데이터베이스 초기화
+psql -U root -f scripts/init-db.sql
+
+# 각 서비스 실행
 cd backend
+./gradlew :service:gateway:bootRun
 ./gradlew :service:user:bootRun
 ./gradlew :service:jobposting:bootRun
-# ... (또는 start-all.sh 스크립트 사용)
+# ... (각 서비스별 실행)
+```
 
-# Frontend 실행
+### 4. 프론트엔드 실행
+
+```bash
 cd frontend
 npm install
 npm run dev
+# → http://localhost:5173
 ```
 
-### 3. 테스트 계정
+### 5. 테스트 계정
 
 | 역할 | 이메일 | 비밀번호 |
 |------|--------|----------|
@@ -276,68 +328,78 @@ npm run dev
 
 ---
 
-## 📸 스크린샷
-
-> TODO: 스크린샷 추가 예정
-
-| 대시보드 | 칸반보드 |
-|---------|---------|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Kanban](docs/screenshots/kanban.png) |
-
-| 공고 상세 | 감사 로그 |
-|---------|---------|
-| ![Job Detail](docs/screenshots/job-detail.png) | ![Audit](docs/screenshots/audit.png) |
-
----
-
 ## 📁 프로젝트 구조
 
 ```
-CoreBridge/
+CoreBridge-MSA/
 ├── README.md
 ├── LICENSE
-├── docker-compose.yml
+├── docker-compose.yml              # 인프라 (PostgreSQL, Redis, Kafka)
 │
 ├── docs/
-│   ├── ARCHITECTURE.md          # 아키텍처 상세
-│   ├── API.md                   # API 명세
-│   ├── ERD.md                   # ERD 설명
-│   ├── screenshots/             # 스크린샷
-│   └── retrospective/           # 회고/트러블슈팅
+│   ├── ARCHITECTURE.md              # 아키텍처 상세
+│   ├── API.md                       # API 명세
+│   ├── ERD.md                       # ERD 설명
+│   ├── design/                      # 설계 문서
+│   │   ├── CoreBridge-AI-Pipeline-설계문서.md
+│   │   ├── CoreBridge-API-Gateway-설계문서.md
+│   │   ├── CoreBridge-CQRS-Batch-설계문서.md
+│   │   ├── CoreBridge-CircuitBreaker-설계문서.md
+│   │   ├── CoreBridge-K8s-CICD-설계문서.md
+│   │   └── CoreBridge-Outbox-설계문서.md
+│   └── retrospective/              # 회고/트러블슈팅
+│       ├── state-machine.md
+│       ├── msa-architecture.md
+│       ├── ai-pipeline.md
+│       └── devops-cicd.md
 │
-├── backend/                     # Spring Boot MSA (13개 서비스)
-│   ├── common/                  # 공통 모듈
-│   ├── infra/                   # 인프라 모듈
+├── backend/                         # Spring Boot MSA
+│   ├── Dockerfile                   # 멀티 스테이지 빌드 (서비스명 ARG)
+│   ├── Jenkinsfile                  # CI/CD 파이프라인
+│   ├── common/                      # 공통 모듈 (JWT, Audit, Exception)
+│   ├── infra/                       # 인프라 모듈 (Kafka, Redis)
 │   └── service/
-│       ├── user/
-│       ├── jobposting/
-│       ├── application/
-│       ├── process/             # ⭐ State Machine
-│       ├── notification/        # SSE + Redis Pub/Sub
-│       └── ...
+│       ├── gateway/                 # API Gateway (:8000)
+│       ├── user/                    # 사용자 서비스 (:8001)
+│       ├── jobposting/              # 채용공고 (:8002)
+│       ├── jobposting-comment/      # 댓글 (:8003)
+│       ├── jobposting-view/         # 조회수 (:8004)
+│       ├── jobposting-like/         # 좋아요 (:8005)
+│       ├── jobposting-hot/          # 인기 공고 (:8006)
+│       ├── jobposting-read/         # 조회 Aggregator (:8007)
+│       ├── resume/                  # 이력서 (:8008)
+│       ├── apply/                   # 지원 + State Machine (:8009)
+│       ├── notification/            # 알림 (:8011)
+│       ├── schedule/                # 일정 (:8012)
+│       └── admin-audit/             # 감사 로그 (:8013)
 │
-├── frontend/                    # Vue 3 + TypeScript
+├── frontend/                        # Vue 3 + TypeScript
+│   ├── Dockerfile                   # Nginx 기반 프로덕션 빌드
+│   ├── Jenkinsfile                  # 프론트엔드 CI/CD
+│   └── nginx.conf                   # SPA 라우팅 + API 프록시
 │
-├── ai/                          # AI 파이프라인
-│   ├── fastapi/                 # FastAPI AI 서비스
-│   │   ├── main.py              # 메인 앱
-│   │   ├── services/            # 분석 서비스
-│   │   └── models/              # 데이터 모델
-│   └── n8n/                     # n8n 워크플로우
-│       └── workflows/           # JSON 워크플로우 정의
+├── ai/                              # AI 파이프라인
+│   └── fastapi/
+│       ├── app.py                   # FastAPI 메인 앱
+│       ├── llm.py                   # Ollama LLM 연동
+│       ├── vector_store.py          # Redis Vector DB
+│       ├── scoring.py               # 매칭 스코어링
+│       ├── models.py                # Pydantic 모델
+│       ├── Dockerfile               # AI 서비스 컨테이너
+│       └── docker-compose.yml       # FastAPI + n8n
 │
-├── infra/                       # 인프라 설정
-│   ├── docker/                  # Docker 설정
-│   ├── k8s/                     # Kubernetes 매니페스트
-│   └── monitoring/              # Prometheus + Grafana
-│       ├── prometheus.yml
-│       └── grafana-dashboard.json
+├── deploy/                          # 배포 설정
+│   ├── k3s/
+│   │   ├── services/                # K8s Deployment + Service YAML
+│   │   ├── jenkins/                 # Jenkins K8s 배포
+│   │   ├── monitoring/              # Prometheus + Grafana
+│   │   └── dashboard/               # K8s Dashboard
+│   └── load-test/                   # 부하 테스트 스크립트
 │
 ├── scripts/
-│   └── init-db.sql
+│   └── init-db.sql                  # PostgreSQL Enum & 스키마 초기화
 │
 └── .github/
-    ├── workflows/ci.yml
     └── pull_request_template.md
 ```
 
@@ -393,6 +455,13 @@ CoreBridge/
 - [API 명세](docs/API.md)
 - [ERD](docs/ERD.md)
 - [AI 파이프라인](ai/README.md)
+- **설계 문서**
+  - [AI Pipeline 설계](docs/design/CoreBridge-AI-Pipeline-설계문서.md)
+  - [API Gateway 설계](docs/design/CoreBridge-API-Gateway-설계문서.md)
+  - [CQRS + Batch 설계](docs/design/CoreBridge-CQRS-Batch-설계문서.md)
+  - [Circuit Breaker 설계](docs/design/CoreBridge-CircuitBreaker-설계문서.md)
+  - [K8s CI/CD 설계](docs/design/CoreBridge-K8s-CICD-설계문서.md)
+  - [Outbox Pattern 설계](docs/design/CoreBridge-Outbox-설계문서.md)
 - **회고/트러블슈팅**
   - [State Machine 패턴 도입기](docs/retrospective/state-machine.md)
   - [MSA 아키텍처 설계](docs/retrospective/msa-architecture.md)
@@ -403,16 +472,18 @@ CoreBridge/
 
 ## 🛤 로드맵
 
-- [ ] MVP - 기본 채용 프로세스 (State Machine)
-- [ ] 칸반보드 UI (드래그앤드롭)
-- [ ] 실시간 알림 (SSE + Redis Pub/Sub)
-- [ ] AI 이력서 분석 (Ollama LLM)
-- [ ] JD 매칭 (Redis Vector Search)
-- [ ] 감사 로그
-- [ ] Kubernetes + Jenkins CI/CD
-- [ ] Prometheus + Grafana 모니터링
-- [ ] AI 모델 성능 최적화 (GPU, 캐싱)
-- [ ] 채용 공고 추천 시스템
+- [x] MVP - 기본 채용 프로세스 (State Machine)
+- [x] 칸반보드 UI (드래그앤드롭)
+- [x] 실시간 알림 (SSE + Redis Pub/Sub)
+- [x] AI 이력서 분석 (Ollama LLM)
+- [x] JD 매칭 (Redis Vector Search)
+- [x] 감사 로그
+- [x] API Gateway (JWT 인증 중앙화)
+- [x] Kubernetes + Jenkins CI/CD
+- [x] Prometheus + Grafana 모니터링
+- [x] Outbox Pattern (Kafka 기반 이벤트 발행)
+- [ ] Circuit Breaker (Resilience4j)
+- [ ] CQRS + Batch (읽기 모델 분리)
 
 ---
 
@@ -420,8 +491,7 @@ CoreBridge/
 
 **양승우**
 
-- GitHub: [@yourusername](https://github.com/atimaby28)
-- Email: your@email.com
+- GitHub: [@atimaby28](https://github.com/atimaby28)
 
 ---
 
