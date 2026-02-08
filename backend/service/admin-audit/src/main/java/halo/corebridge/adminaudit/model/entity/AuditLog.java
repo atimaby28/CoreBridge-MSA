@@ -38,14 +38,17 @@ public class AuditLog extends BaseTimeEntity {
 
     private String clientIp;
 
+    @Column(length = 512)
     private String userAgent;         // 브라우저 정보
 
     private Integer httpStatus;       // 200, 400, 500
 
     private Long executionTime;       // 실행 시간 (ms)
 
+    @Column(columnDefinition = "TEXT")
     private String requestBody;       // 요청 본문 (민감정보 제외)
 
+    @Column(columnDefinition = "TEXT")
     private String errorMessage;      // 에러 발생 시 메시지
 
     public static AuditLog create(
