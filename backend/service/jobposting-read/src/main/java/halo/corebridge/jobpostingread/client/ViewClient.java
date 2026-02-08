@@ -1,10 +1,13 @@
 package halo.corebridge.jobpostingread.client;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ViewClient {
@@ -14,14 +17,18 @@ public class ViewClient {
     @Value("${client.view.url:http://localhost:8004}")
     private String viewServiceUrl;
 
+    @CircuitBreaker(name = "viewService", fallbackMethod = "countFallback")
     public Long count(Long jobpostingId) {
-        try {
-            String url = viewServiceUrl + "/api/v1/jobposting-views/jobpostings/" + jobpostingId + "/count";
-            BaseResponse response = restTemplate.getForObject(url, BaseResponse.class);
-            return response != null && response.getResult() != null ? response.getResult() : 0L;
-        } catch (Exception e) {
-            return 0L;
-        }
+        String url = viewServiceUrl + "/api/v1/jobposting-views/jobpostings/" + jobpostingId + "/count";
+        BaseResponse response = restTemplate.getForObject(url, BaseResponse.class);
+        return response != null && response.getResult() != null ? response.getResult() : 0L;
+    }
+
+    // ===== Fallback Methods =====
+
+    private Long countFallback(Long jobpostingId, Throwable t) {
+        log.warn("[CircuitBreaker] viewService.count FALLBACK - jobpostingId={}, error={}", jobpostingId, t.getMessage());
+        return 0L;
     }
 
     @lombok.Data

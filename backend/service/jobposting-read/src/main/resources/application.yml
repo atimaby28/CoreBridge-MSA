@@ -46,3 +46,47 @@ logging:
 # Outbox (소비자 서비스 - 비활성화)
 outbox:
   enabled: false
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        slowCallRateThreshold: 80
+        slowCallDurationThreshold: 3s
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        recordExceptions:
+          - org.springframework.web.client.RestClientException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+    instances:
+      jobpostingService:
+        baseConfig: default
+      userService:
+        baseConfig: default
+      commentService:
+        baseConfig: default
+      viewService:
+        baseConfig: default
+      likeService:
+        baseConfig: default
+
+# Actuator - Circuit Breaker 상태 노출
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, circuitbreakers, metrics
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true

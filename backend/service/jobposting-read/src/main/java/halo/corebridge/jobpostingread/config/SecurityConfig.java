@@ -33,6 +33,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/v1/jobposting-read/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/circuit-breakers/**").permitAll()
                         .requestMatchers("/actuator/**", "/health/**").permitAll()
                         .anyRequest().authenticated()
                 )
