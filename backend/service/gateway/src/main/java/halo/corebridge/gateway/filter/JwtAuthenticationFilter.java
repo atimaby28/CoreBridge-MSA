@@ -46,7 +46,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final List<String> PUBLIC_GET_PATHS = List.of(
             "/api/v1/jobpostings",
             "/api/v1/jobposting-read",   // 통계 포함 조회
-            "/api/v1/hot-jobpostings",   // 인기 공고 조회
+            "/api/v1/jobposting-hot",   // 인기 공고 조회
             "/api/v1/comments",          // 댓글 조회
             "/api/v1/jobposting-views",  // 조회수 조회
             "/api/v1/jobposting-likes"   // 좋아요 수 조회

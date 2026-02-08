@@ -11,7 +11,7 @@ import type {
   Comment,
   CommentCreateRequest,
   CommentPageResponse,
-  HotJobpostingResponse,
+  JobpostingHotResponse,
 } from '@/types/jobposting'
 
 // ============================================
@@ -134,12 +134,12 @@ export const likeService = {
 // ============================================
 export const hotService = {
   // 오늘의 인기 공고 TOP 10
-  async getHotToday(): Promise<HotJobpostingResponse[]> {
-    return api.get('/api/v1/hot-jobpostings/today')
+  async getJobpostingHotToday(): Promise<JobpostingHotResponse[]> {
+    return api.get('/api/v1/jobposting-hot/today')
   },
 
   // 특정 날짜의 인기 공고
-  async getHotByDate(dateStr: string): Promise<HotJobpostingResponse[]> {
-    return api.get(`/api/v1/hot-jobpostings/date/${dateStr}`)
+  async getJobpostingHotByDate(dateStr: string): Promise<JobpostingHotResponse[]> {
+    return api.get(`/api/v1/jobposting-hot/date/${dateStr}`)
   },
 }

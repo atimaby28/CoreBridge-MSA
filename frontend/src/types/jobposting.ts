@@ -140,7 +140,7 @@ export interface CommentPageResponse {
 // 인기 공고 (Hot Jobposting)
 // ============================================
 
-export interface HotJobpostingResponse {
+export interface JobpostingHotResponse {
   jobpostingId: number
   title: string
   boardId: number

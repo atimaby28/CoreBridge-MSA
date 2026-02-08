@@ -1,9 +1,9 @@
 package halo.corebridge.jobpostinghot.handler;
 
 import halo.corebridge.common.event.*;
-import halo.corebridge.jobpostinghot.model.entity.HotJobposting;
-import halo.corebridge.jobpostinghot.model.entity.HotJobpostingId;
-import halo.corebridge.jobpostinghot.repository.HotJobpostingRepository;
+import halo.corebridge.jobpostinghot.model.entity.JobpostingHot;
+import halo.corebridge.jobpostinghot.model.entity.JobpostingHotId;
+import halo.corebridge.jobpostinghot.repository.JobpostingHotRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -13,16 +13,16 @@ import java.time.LocalDate;
 import java.util.Set;
 
 /**
- * 이벤트 수신 시 HotJobposting 테이블의 통계를 실시간 갱신.
+ * 이벤트 수신 시 JobpostingHot 테이블의 통계를 실시간 갱신.
  * 기존 @Scheduled 배치 + HTTP 호출 방식에서
  * → 이벤트 기반 실시간 갱신으로 전환.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class HotJobpostingEventHandler implements EventHandler<EventPayload> {
+public class JobpostingHotEventHandler implements EventHandler<EventPayload> {
 
-    private final HotJobpostingRepository hotJobpostingRepository;
+    private final JobpostingHotRepository jobpostingHotRepository;
 
     private static final Set<EventType> SUPPORTED_TYPES = Set.of(
             EventType.JOBPOSTING_CREATED,
@@ -60,11 +60,11 @@ public class HotJobpostingEventHandler implements EventHandler<EventPayload> {
 
     private void handleCreated(JobpostingCreatedEventPayload payload) {
         LocalDate today = LocalDate.now();
-        HotJobposting hot = HotJobposting.create(
+        JobpostingHot hot = JobpostingHot.create(
                 today, payload.getJobpostingId(), payload.getTitle(),
                 payload.getBoardId(), 0L, 0L, 0L
         );
-        hotJobpostingRepository.save(hot);
+        jobpostingHotRepository.save(hot);
         log.info("[HotHandler] CREATED: jobpostingId={}", payload.getJobpostingId());
     }
 
@@ -77,8 +77,8 @@ public class HotJobpostingEventHandler implements EventHandler<EventPayload> {
 
     private void handleDeleted(JobpostingDeletedEventPayload payload) {
         LocalDate today = LocalDate.now();
-        HotJobpostingId id = new HotJobpostingId(today, payload.getJobpostingId());
-        hotJobpostingRepository.deleteById(id);
+        JobpostingHotId id = new JobpostingHotId(today, payload.getJobpostingId());
+        jobpostingHotRepository.deleteById(id);
         log.info("[HotHandler] DELETED: jobpostingId={}", payload.getJobpostingId());
     }
 
@@ -117,12 +117,12 @@ public class HotJobpostingEventHandler implements EventHandler<EventPayload> {
         log.info("[HotHandler] COMMENT_DELETED: jobpostingId={}", payload.getJobpostingId());
     }
 
-    private void findAndUpdate(Long jobpostingId, java.util.function.Consumer<HotJobposting> updater) {
+    private void findAndUpdate(Long jobpostingId, java.util.function.Consumer<JobpostingHot> updater) {
         LocalDate today = LocalDate.now();
-        HotJobpostingId id = new HotJobpostingId(today, jobpostingId);
-        hotJobpostingRepository.findById(id).ifPresent(hot -> {
+        JobpostingHotId id = new JobpostingHotId(today, jobpostingId);
+        jobpostingHotRepository.findById(id).ifPresent(hot -> {
             updater.accept(hot);
-            hotJobpostingRepository.save(hot);
+            jobpostingHotRepository.save(hot);
         });
     }
 }

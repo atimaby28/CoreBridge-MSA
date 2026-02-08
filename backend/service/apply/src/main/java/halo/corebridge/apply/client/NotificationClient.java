@@ -24,7 +24,7 @@ public class NotificationClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${notification.service.url:http://localhost:8011}")
+    @Value("${notification.service.url:http://localhost:8010}")
     private String notificationServiceUrl;
 
     private static final String API_PATH = "/internal/v1/notifications";

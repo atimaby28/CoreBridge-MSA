@@ -324,7 +324,7 @@ implementation project(':common:data-serializer')
 | 파일 | 설명 |
 |------|------|
 | `config/KafkaConfig.java` | KafkaListener 설정 |
-| `consumer/HotJobpostingEventConsumer.java` | @KafkaListener, 4개 토픽 구독 |
+| `consumer/JobpostingHotEventConsumer.java` | @KafkaListener, 4개 토픽 구독 |
 | `service/event/handler/EventHandler.java` | 핸들러 인터페이스 |
 | `service/event/handler/JobpostingCreatedEventHandler.java` | 새 공고 스코어 등록 |
 | `service/event/handler/CommentCreatedEventHandler.java` | 댓글 이벤트 → 스코어 재계산 |

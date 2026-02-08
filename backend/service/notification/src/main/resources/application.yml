@@ -1,5 +1,5 @@
 server:
-  port: 8011
+  port: 8010
 
 spring:
   application:
@@ -33,7 +33,7 @@ jwt:
 audit:
   enabled: true
   service-name: notification
-  service-url: http://localhost:8013
+  service-url: http://localhost:8012
 
 logging:
   level:

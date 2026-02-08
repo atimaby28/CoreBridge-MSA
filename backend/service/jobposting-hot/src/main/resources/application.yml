@@ -25,11 +25,6 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  batch:
-    jdbc:
-      initialize-schema: always
-    job:
-      enabled: false
 
 server:
   port: 8006
@@ -55,7 +50,7 @@ client:
 audit:
   enabled: true
   service-name: jobposting-hot
-  service-url: http://localhost:8013
+  service-url: http://localhost:8012
 # Outbox (소비자 서비스 - 비활성화)
 outbox:
   enabled: false

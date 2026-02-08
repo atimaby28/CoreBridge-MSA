@@ -31,7 +31,7 @@
     [user :8001]          [jobposting :8002]        [apply :8009]
     [comment :8003]       [view :8004]             [resume :8008]
     [like :8005]          [hot :8006]              [schedule :8012]
-    [read :8007]          [notification :8011]     [audit :8013]
+    [read :8007]          [notification :8010]     [audit :8012]
 ```
 
 ---
@@ -56,7 +56,7 @@
 |------|------|
 | `/api/v1/jobpostings/**` | 공고 조회 |
 | `/api/v1/jobposting-read/**` | 통계 포함 조회 |
-| `/api/v1/hot-jobpostings/**` | 인기 공고 |
+| `/api/v1/jobposting-hot/**` | 인기 공고 |
 | `/api/v1/comments/**` | 댓글 조회 |
 | `/api/v1/jobposting-views/**` | 조회수 |
 | `/api/v1/jobposting-likes/**` | 좋아요수 |
@@ -109,13 +109,13 @@ ServerHttpRequest mutatedRequest = request.mutate()
 | jobposting-comment | `/api/v1/comments/**` | comment | 8003 |
 | jobposting-view | `/api/v1/jobposting-views/**` | view | 8004 |
 | jobposting-like | `/api/v1/jobposting-likes/**` | like | 8005 |
-| jobposting-hot | `/api/v1/hot-jobpostings/**` | hot | 8006 |
+| jobposting-hot | `/api/v1/jobposting-hot/**` | hot | 8006 |
 | jobposting-read | `/api/v1/jobposting-read/**` | read | 8007 |
 | resume-service | `/api/v1/resumes/**` | resume | 8008 |
 | apply-service | `/api/v1/applies/**`, `/api/v1/processes/**`, `/api/v1/ai-matching/**` | apply | 8009 |
 | notification-service | `/api/v1/notifications/**` | notification | 8011 |
 | schedule-service | `/api/v1/schedules/**` | schedule | 8012 |
-| admin-audit | `/api/v1/admin/**`, `/api/v1/audit/**` | audit | 8013 |
+| admin-audit | `/api/v1/admin/**`, `/api/v1/audit/**` | audit | 8012 |
 
 **라우팅 순서**: 더 구체적인 경로가 먼저 (read > jobposting)
 

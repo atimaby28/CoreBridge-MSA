@@ -39,11 +39,11 @@ spring:
           predicates:
             - Path=/api/v1/comments/**
 
-        # JobPosting-Hot Service (8006) - 인기 공고
+        # Jobposting-Hot Service (8006) - 인기 공고
         - id: jobposting-hot-service
           uri: http://localhost:8006
           predicates:
-            - Path=/api/v1/hot-jobpostings/**
+            - Path=/api/v1/jobposting-hot/**
 
         # JobPosting Service (8002) - 기본 CRUD (마지막에 배치!)
         - id: jobposting-service
@@ -57,15 +57,15 @@ spring:
           predicates:
             - Path=/api/v1/applies/**,/api/v1/processes/**,/api/v1/ai-matching/**
 
-        # Schedule Service (8012)
+        # Schedule Service (8011)
         - id: schedule-service
-          uri: http://localhost:8012
+          uri: http://localhost:8011
           predicates:
             - Path=/api/v1/schedules/**
 
-        # Notification Service (8011)
+        # Notification Service (8010)
         - id: notification-service
-          uri: http://localhost:8011
+          uri: http://localhost:8010
           predicates:
             - Path=/api/v1/notifications/**
 
@@ -75,9 +75,9 @@ spring:
           predicates:
             - Path=/api/v1/resumes/**
 
-        # Admin-Audit Service (8013)
+        # Admin-Audit Service (8012)
         - id: admin-audit-service
-          uri: http://localhost:8013
+          uri: http://localhost:8012
           predicates:
             - Path=/api/v1/admin/**, /api/v1/audit/**
 

@@ -24,7 +24,7 @@ public class AuditClient {
 
     public AuditClient(
             @Qualifier("auditRestTemplate") RestTemplate restTemplate,
-            @Value("${audit.service-url:http://localhost:8013}") String auditServiceUrl,
+            @Value("${audit.service-url:http://localhost:8012}") String auditServiceUrl,
             @Value("${audit.enabled:true}") boolean enabled
     ) {
         this.restTemplate = restTemplate;
