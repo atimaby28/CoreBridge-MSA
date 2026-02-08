@@ -111,7 +111,7 @@
 │  8001  │  8002  │  8003  │  8004  │  8005  │  8006  │  8007             │
 │  user  │  job   │comment │  view  │  like  │  hot   │  read            │
 ├────────┼────────┼────────┼────────┼────────┼────────┼──────────────────┤
-│  8008  │  8009  │  8011  │  8012  │  8013  │                           │
+│  8008  │  8009  │  8010  │  8011  │  8012  │                           │
 │ resume │  apply │ notif  │schedule│ audit  │                           │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -172,9 +172,9 @@
 | 8007 | **jobposting-read** | 공고 상세 조회 (Aggregator) |
 | 8008 | **resume** | 이력서 관리 |
 | 8009 | **apply** | ⭐ 지원서 관리 + 채용 프로세스 (State Machine) |
-| 8011 | **notification** | 실시간 알림 (SSE + Redis Pub/Sub) |
-| 8012 | **schedule** | 면접 일정 관리 |
-| 8013 | **admin-audit** | 감사 로그 |
+| 8010 | **notification** | 실시간 알림 (SSE + Redis Pub/Sub) |
+| 8011 | **schedule** | 면접 일정 관리 |
+| 8012 | **admin-audit** | 감사 로그 |
 
 ### 인프라 서비스
 
@@ -369,9 +369,9 @@ CoreBridge-MSA/
 │       ├── jobposting-read/         # 조회 Aggregator (:8007)
 │       ├── resume/                  # 이력서 (:8008)
 │       ├── apply/                   # 지원 + State Machine (:8009)
-│       ├── notification/            # 알림 (:8011)
-│       ├── schedule/                # 일정 (:8012)
-│       └── admin-audit/             # 감사 로그 (:8013)
+│       ├── notification/            # 알림 (:8010)
+│       ├── schedule/                # 일정 (:8011)
+│       └── admin-audit/             # 감사 로그 (:8012)
 │
 ├── frontend/                        # Vue 3 + TypeScript
 │   ├── Dockerfile                   # Nginx 기반 프로덕션 빌드
@@ -482,8 +482,8 @@ CoreBridge-MSA/
 - [x] Kubernetes + Jenkins CI/CD
 - [x] Prometheus + Grafana 모니터링
 - [x] Outbox Pattern (Kafka 기반 이벤트 발행)
-- [ ] Circuit Breaker (Resilience4j)
-- [ ] CQRS + Batch (읽기 모델 분리)
+- [x] Circuit Breaker (Resilience4j)
+- [x] CQRS + Batch (읽기 모델 분리)
 
 ---
 
