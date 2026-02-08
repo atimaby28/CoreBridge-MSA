@@ -1,61 +1,63 @@
 package halo.corebridge.jobpostinghot.scheduler;
 
-import halo.corebridge.jobpostinghot.service.HotJobpostingService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class HotJobpostingScheduler {
-    
-    private final HotJobpostingService hotJobpostingService;
+
+    private final JobLauncher jobLauncher;
+    private final Job hotScoreJob;
 
     /**
      * 서비스 시작 시 인기 공고 갱신
      */
     @PostConstruct
     public void initOnStartup() {
-        log.info("=== Starting initial hot jobposting update on startup ===");
-        try {
-            int count = hotJobpostingService.updateAll();
-            log.info("=== Completed initial update: {} jobpostings ===", count);
-        } catch (Exception e) {
-            log.warn("=== Initial hot jobposting update failed (services may not be ready): {} ===", e.getMessage());
-        }
+        log.info("=== Starting initial hot jobposting batch on startup ===");
+        runBatchJob("startup");
     }
 
     /**
      * 매시간 인기 공고 갱신
-     * cron: 초 분 시 일 월 요일
-     * "0 0 * * * *" = 매시간 정각
      */
     @Scheduled(cron = "0 0 * * * *")
     public void updateHotJobpostingsHourly() {
-        log.info("=== Starting hourly hot jobposting update ===");
-        try {
-            int count = hotJobpostingService.updateAll();
-            log.info("=== Completed hourly update: {} jobpostings ===", count);
-        } catch (Exception e) {
-            log.error("=== Failed hourly hot jobposting update ===", e);
-        }
+        log.info("=== Starting hourly hot jobposting batch ===");
+        runBatchJob("hourly");
     }
 
     /**
-     * 매일 자정 인기 공고 갱신 (새로운 날짜 데이터 생성)
-     * "0 0 0 * * *" = 매일 자정
+     * 매일 자정 인기 공고 갱신
      */
     @Scheduled(cron = "0 0 0 * * *")
     public void updateHotJobpostingsDaily() {
-        log.info("=== Starting daily hot jobposting update ===");
+        log.info("=== Starting daily hot jobposting batch ===");
+        runBatchJob("daily");
+    }
+
+    private void runBatchJob(String trigger) {
         try {
-            int count = hotJobpostingService.updateAll();
-            log.info("=== Completed daily update: {} jobpostings ===", count);
+            JobParameters params = new JobParametersBuilder()
+                    .addString("date", LocalDate.now().toString())
+                    .addString("trigger", trigger)
+                    .addLong("timestamp", System.currentTimeMillis())
+                    .toJobParameters();
+
+            jobLauncher.run(hotScoreJob, params);
         } catch (Exception e) {
-            log.error("=== Failed daily hot jobposting update ===", e);
+            log.error("=== Batch job failed (trigger={}): {} ===", trigger, e.getMessage());
         }
     }
 }
