@@ -26,21 +26,21 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class HotJobpostingEventConsumer {
+public class JobpostingHotEventConsumer {
 
     private final List<EventHandler<?>> eventHandlers;
 
     @KafkaListener(
             topics = {"corebridge-jobposting", "corebridge-comment", "corebridge-like", "corebridge-view"},
             groupId = "jobposting-hot-group",
-            containerFactory = "hotJobpostingKafkaListenerContainerFactory"
+            containerFactory = "jobpostingHotKafkaListenerContainerFactory"
     )
     public void consume(String message) {
-        log.info("[HotJobpostingEventConsumer] received message");
+        log.info("[JobpostingHotEventConsumer] received message");
         try {
             Event<EventPayload> event = DataSerializer.deserialize(message, Event.class);
             if (event == null) {
-                log.error("[HotJobpostingEventConsumer] failed to deserialize message");
+                log.error("[JobpostingHotEventConsumer] failed to deserialize message");
                 return;
             }
 
@@ -55,7 +55,7 @@ public class HotJobpostingEventConsumer {
                 }
             }
         } catch (Exception e) {
-            log.error("[HotJobpostingEventConsumer] error processing message", e);
+            log.error("[JobpostingHotEventConsumer] error processing message", e);
         }
     }
 
@@ -65,7 +65,7 @@ public class HotJobpostingEventConsumer {
         private String bootstrapServers;
 
         @Bean
-        public ConsumerFactory<String, String> hotJobpostingConsumerFactory() {
+        public ConsumerFactory<String, String> jobpostingHotConsumerFactory() {
             Map<String, Object> props = new HashMap<>();
             props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
             props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
@@ -75,10 +75,10 @@ public class HotJobpostingEventConsumer {
         }
 
         @Bean
-        public ConcurrentKafkaListenerContainerFactory<String, String> hotJobpostingKafkaListenerContainerFactory() {
+        public ConcurrentKafkaListenerContainerFactory<String, String> jobpostingHotKafkaListenerContainerFactory() {
             ConcurrentKafkaListenerContainerFactory<String, String> factory =
                     new ConcurrentKafkaListenerContainerFactory<>();
-            factory.setConsumerFactory(hotJobpostingConsumerFactory());
+            factory.setConsumerFactory(jobpostingHotConsumerFactory());
             factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
             return factory;
         }

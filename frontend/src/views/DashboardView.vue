@@ -7,7 +7,7 @@ import { getAuditStats, getRecentAudits, type AuditStatsResponse, type AuditResp
 import { hotService, readService, jobpostingService } from '@/api/jobposting'
 import { getUserApplyStats, getCompanyProcessStats } from '@/api/apply'
 import { getMySchedules } from '@/api/schedule'
-import type { HotJobpostingResponse, JobpostingReadResponse } from '@/types/jobposting'
+import type { JobpostingHotResponse, JobpostingReadResponse } from '@/types/jobposting'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -27,7 +27,7 @@ const auditStats = ref<AuditStatsResponse | null>(null)
 const recentAudits = ref<AuditResponse[]>([])
 
 // 인기 공고 & 최신 공고
-const hotJobpostings = ref<HotJobpostingResponse[]>([])
+const jobpostingHotList = ref<JobpostingHotResponse[]>([])
 const recentJobpostings = ref<JobpostingReadResponse[]>([])
 
 // User 통계
@@ -160,12 +160,12 @@ async function loadCompanyDashboardStats() {
 }
 
 // 인기 공고 로드
-async function loadHotJobpostings() {
+async function loadJobpostingHot() {
   try {
-    hotJobpostings.value = await hotService.getHotToday()
+    jobpostingHotList.value = await hotService.getJobpostingHotToday()
   } catch (e) {
     console.error('인기 공고 로드 실패:', e)
-    hotJobpostings.value = []
+    jobpostingHotList.value = []
   }
 }
 
@@ -229,7 +229,7 @@ onMounted(async () => {
     if (authStore.isAdmin) {
       await Promise.all([loadUserStats(), loadAuditStats()])
     } else {
-      const promises: Promise<void>[] = [loadHotJobpostings(), loadRecentJobpostings()]
+      const promises: Promise<void>[] = [loadJobpostingHot(), loadRecentJobpostings()]
 
       // User: 지원 통계 로드
       if (authStore.isUser) {
@@ -519,12 +519,12 @@ onMounted(async () => {
           </div>
           
           <div v-if="loading" class="py-8 text-center text-gray-500">로딩중...</div>
-          <div v-else-if="hotJobpostings.length === 0" class="py-8 text-center text-gray-500">
+          <div v-else-if="jobpostingHotList.length === 0" class="py-8 text-center text-gray-500">
             인기 공고가 없습니다
           </div>
           <div v-else class="space-y-1">
             <div
-              v-for="(job, index) in hotJobpostings.slice(0, 5)"
+              v-for="(job, index) in jobpostingHotList.slice(0, 5)"
               :key="job.jobpostingId"
               @click="goToJobposting(job.jobpostingId)"
               class="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"

@@ -38,7 +38,7 @@ jwt:
 # 감사 로그 설정
 audit:
   enabled: true
-  service-url: http://localhost:8013
+  service-url: http://localhost:8012
 
 # Outbox Pattern (생산자 서비스 - 활성화)
 outbox:

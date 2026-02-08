@@ -26,4 +26,4 @@ jwt:
 audit:
   enabled: false
   service-name: resume-test
-  service-url: http://localhost:8013
+  service-url: http://localhost:8012

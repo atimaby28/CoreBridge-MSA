@@ -12,11 +12,11 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "hot_jobposting")
-@IdClass(HotJobpostingId.class)
+@Table(name = "jobposting_hot")
+@IdClass(JobpostingHotId.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class HotJobposting extends BaseTimeEntity {
+public class JobpostingHot extends BaseTimeEntity {
     
     @Id
     private LocalDate dateKey;
@@ -36,7 +36,7 @@ public class HotJobposting extends BaseTimeEntity {
     
     private Double score;
 
-    public static HotJobposting create(
+    public static JobpostingHot create(
             LocalDate dateKey,
             Long jobpostingId,
             String title,
@@ -45,7 +45,7 @@ public class HotJobposting extends BaseTimeEntity {
             Long commentCount,
             Long viewCount
     ) {
-        HotJobposting entity = new HotJobposting();
+        JobpostingHot entity = new JobpostingHot();
         entity.dateKey = dateKey;
         entity.jobpostingId = jobpostingId;
         entity.title = title;

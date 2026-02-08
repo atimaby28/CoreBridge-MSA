@@ -6,7 +6,7 @@ import { useJobpostingStore } from '@/stores/jobposting'
 import { useAuthStore } from '@/stores/auth'
 import { hotService } from '@/api/jobposting'
 import { DEFAULT_BOARDS } from '@/types/jobposting'
-import type { HotJobpostingResponse } from '@/types/jobposting'
+import type { JobpostingHotResponse } from '@/types/jobposting'
 
 const router = useRouter()
 const route = useRoute()
@@ -32,7 +32,7 @@ const canCreateJobposting = computed(() => authStore.isCompany || authStore.isAd
 const boards = ref(DEFAULT_BOARDS)
 
 // 인기 공고
-const hotJobpostings = ref<HotJobpostingResponse[]>([])
+const jobpostingHotList = ref<JobpostingHotResponse[]>([])
 const hotLoading = ref(false)
 
 // 검색어
@@ -60,13 +60,13 @@ const visiblePages = computed(() => {
 })
 
 // 인기 공고 로드
-async function loadHotJobpostings() {
+async function loadJobpostingHot() {
   hotLoading.value = true
   try {
-    hotJobpostings.value = await hotService.getHotToday()
+    jobpostingHotList.value = await hotService.getJobpostingHotToday()
   } catch (e) {
     console.error('인기 공고 로드 실패:', e)
-    hotJobpostings.value = []
+    jobpostingHotList.value = []
   } finally {
     hotLoading.value = false
   }
@@ -121,7 +121,7 @@ onMounted(() => {
   jobpostingStore.setPage(page)
   jobpostingStore.fetchJobpostings()
   
-  loadHotJobpostings()
+  loadJobpostingHot()
 })
 
 // URL 쿼리 변경 감지
@@ -291,14 +291,14 @@ watch(() => route.query, (newQuery) => {
           </div>
 
           <!-- 빈 목록 -->
-          <div v-else-if="hotJobpostings.length === 0" class="py-8 text-center text-gray-500 text-sm">
+          <div v-else-if="jobpostingHotList.length === 0" class="py-8 text-center text-gray-500 text-sm">
             아직 인기 공고가 없습니다
           </div>
 
           <!-- 인기 공고 목록 -->
           <div v-else class="space-y-1">
             <div
-              v-for="(hot, index) in hotJobpostings.slice(0, 5)"
+              v-for="(hot, index) in jobpostingHotList.slice(0, 5)"
               :key="hot.jobpostingId"
               @click="goToDetail(hot.jobpostingId)"
               class="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"

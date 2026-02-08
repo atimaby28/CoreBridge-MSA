@@ -4,9 +4,9 @@ import halo.corebridge.jobpostinghot.client.CommentClient;
 import halo.corebridge.jobpostinghot.client.JobpostingClient;
 import halo.corebridge.jobpostinghot.client.LikeClient;
 import halo.corebridge.jobpostinghot.client.ViewClient;
-import halo.corebridge.jobpostinghot.model.dto.HotJobpostingDto;
-import halo.corebridge.jobpostinghot.model.entity.HotJobposting;
-import halo.corebridge.jobpostinghot.repository.HotJobpostingRepository;
+import halo.corebridge.jobpostinghot.model.dto.JobpostingHotDto;
+import halo.corebridge.jobpostinghot.model.entity.JobpostingHot;
+import halo.corebridge.jobpostinghot.repository.JobpostingHotRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,10 +27,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-class HotJobpostingServiceTest {
+class JobpostingHotServiceTest {
 
     @Mock
-    private HotJobpostingRepository hotJobpostingRepository;
+    private JobpostingHotRepository jobpostingHotRepository;
     @Mock
     private JobpostingClient jobpostingClient;
     @Mock
@@ -41,14 +41,14 @@ class HotJobpostingServiceTest {
     private CommentClient commentClient;
 
     @InjectMocks
-    private HotJobpostingService hotJobpostingService;
+    private JobpostingHotService jobpostingHotService;
 
-    private HotJobposting mockHotJobposting;
+    private JobpostingHot mockJobpostingHot;
     private JobpostingClient.JobpostingResponse mockJobposting;
 
     @BeforeEach
     void setUp() {
-        mockHotJobposting = HotJobposting.create(
+        mockJobpostingHot = JobpostingHot.create(
                 LocalDate.now(),
                 1L,
                 "테스트 채용공고",
@@ -68,11 +68,11 @@ class HotJobpostingServiceTest {
     @DisplayName("오늘의 인기 공고 조회 - 성공")
     void readTopN_success() {
         // given
-        given(hotJobpostingRepository.findTopByDateKey(LocalDate.now(), 10))
-                .willReturn(List.of(mockHotJobposting));
+        given(jobpostingHotRepository.findTopByDateKey(LocalDate.now(), 10))
+                .willReturn(List.of(mockJobpostingHot));
 
         // when
-        List<HotJobpostingDto.Response> result = hotJobpostingService.readTopN(10);
+        List<JobpostingHotDto.Response> result = jobpostingHotService.readTopN(10);
 
         // then
         assertThat(result).hasSize(1);
@@ -85,11 +85,11 @@ class HotJobpostingServiceTest {
     void readAll_success() {
         // given
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        given(hotJobpostingRepository.findByDateKeyOrderByScoreDesc(LocalDate.now()))
-                .willReturn(List.of(mockHotJobposting));
+        given(jobpostingHotRepository.findByDateKeyOrderByScoreDesc(LocalDate.now()))
+                .willReturn(List.of(mockJobpostingHot));
 
         // when
-        List<HotJobpostingDto.Response> result = hotJobpostingService.readAll(dateStr);
+        List<JobpostingHotDto.Response> result = jobpostingHotService.readAll(dateStr);
 
         // then
         assertThat(result).hasSize(1);
@@ -105,15 +105,15 @@ class HotJobpostingServiceTest {
         given(viewClient.count(jobpostingId)).willReturn(100L);
         given(likeClient.count(jobpostingId)).willReturn(10L);
         given(commentClient.count(jobpostingId)).willReturn(5L);
-        given(hotJobpostingRepository.findById(any())).willReturn(Optional.empty());
-        given(hotJobpostingRepository.save(any())).willReturn(mockHotJobposting);
+        given(jobpostingHotRepository.findById(any())).willReturn(Optional.empty());
+        given(jobpostingHotRepository.save(any())).willReturn(mockJobpostingHot);
 
         // when
-        HotJobpostingDto.Response result = hotJobpostingService.register(jobpostingId);
+        JobpostingHotDto.Response result = jobpostingHotService.register(jobpostingId);
 
         // then
         assertThat(result).isNotNull();
-        verify(hotJobpostingRepository).save(any(HotJobposting.class));
+        verify(jobpostingHotRepository).save(any(JobpostingHot.class));
     }
 
     @Test
@@ -124,7 +124,7 @@ class HotJobpostingServiceTest {
         given(jobpostingClient.read(jobpostingId)).willReturn(null);
 
         // when & then
-        assertThatThrownBy(() -> hotJobpostingService.register(jobpostingId))
+        assertThatThrownBy(() -> jobpostingHotService.register(jobpostingId))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Jobposting not found");
     }

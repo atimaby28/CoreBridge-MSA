@@ -10,7 +10,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode
-public class HotJobpostingId implements Serializable {
+public class JobpostingHotId implements Serializable {
     private LocalDate dateKey;
     private Long jobpostingId;
 }

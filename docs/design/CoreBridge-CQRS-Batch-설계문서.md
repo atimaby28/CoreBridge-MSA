@@ -131,9 +131,9 @@ Batch로 주기적 보정하여 **최종 일관성(Eventual Consistency)**을 �
 ```java
 @Component
 @RequiredArgsConstructor
-public class HotJobpostingScheduler {
+public class JobpostingHotScheduler {
 
-    private final HotJobpostingService hotJobpostingService;
+    private final JobpostingHotService jobpostingHotService;
 
     /**
      * 매시간 전체 공고의 인기 스코어 재계산
@@ -142,7 +142,7 @@ public class HotJobpostingScheduler {
     @Scheduled(cron = "0 0 * * * *")  // 매시간
     public void hourlyScoreRecalculation() {
         log.info("[Batch] 시간별 인기 스코어 재계산 시작");
-        int count = hotJobpostingService.recalculateAllScores();
+        int count = jobpostingHotService.recalculateAllScores();
         log.info("[Batch] 시간별 인기 스코어 재계산 완료: {}건", count);
     }
 
@@ -152,7 +152,7 @@ public class HotJobpostingScheduler {
     @Scheduled(cron = "0 0 0 * * *")  // 매일 자정
     public void dailyCleanup() {
         log.info("[Batch] 일일 정리 시작");
-        hotJobpostingService.cleanupOldData(7);  // 7일 이전 삭제
+        jobpostingHotService.cleanupOldData(7);  // 7일 이전 삭제
         log.info("[Batch] 일일 정리 완료");
     }
 }

@@ -35,4 +35,4 @@ client:
 audit:
   enabled: false
   service-name: jobposting-hot
-  service-url: http://localhost:8013
+  service-url: http://localhost:8012

@@ -38,7 +38,7 @@ client:
 audit:
   enabled: true
   service-name: jobposting-read
-  service-url: http://localhost:8013
+  service-url: http://localhost:8012
 
 logging:
   level:

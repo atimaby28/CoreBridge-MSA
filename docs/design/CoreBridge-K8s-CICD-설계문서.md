@@ -130,7 +130,7 @@ spec:
 | apply | 8009 | ClusterIP | - |
 | notification | 8011 | ClusterIP | - |
 | schedule | 8012 | ClusterIP | - |
-| admin-audit | 8013 | ClusterIP | - |
+| admin-audit | 8012 | ClusterIP | - |
 | frontend | 80 | **NodePort** | 30080 |
 
 **외부 접근**: Gateway(30081)와 Frontend(30080)만 NodePort로 노출

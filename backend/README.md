@@ -31,7 +31,7 @@ backend/
     ├── jobposting-read/    # 상세 조회 (8010)
     ├── jobposting-hot/     # 인기 공고 (8011)
     ├── jobposting-comment/ # 댓글 (8012)
-    └── admin-audit/        # 감사 로그 (8013)
+    └── admin-audit/        # 감사 로그 (8012)
 ```
 
 ## 실행

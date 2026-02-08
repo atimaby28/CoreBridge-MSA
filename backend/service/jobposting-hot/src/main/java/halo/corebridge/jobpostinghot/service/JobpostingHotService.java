@@ -4,10 +4,10 @@ import halo.corebridge.jobpostinghot.client.CommentClient;
 import halo.corebridge.jobpostinghot.client.JobpostingClient;
 import halo.corebridge.jobpostinghot.client.LikeClient;
 import halo.corebridge.jobpostinghot.client.ViewClient;
-import halo.corebridge.jobpostinghot.model.dto.HotJobpostingDto;
-import halo.corebridge.jobpostinghot.model.entity.HotJobposting;
-import halo.corebridge.jobpostinghot.model.entity.HotJobpostingId;
-import halo.corebridge.jobpostinghot.repository.HotJobpostingRepository;
+import halo.corebridge.jobpostinghot.model.dto.JobpostingHotDto;
+import halo.corebridge.jobpostinghot.model.entity.JobpostingHot;
+import halo.corebridge.jobpostinghot.model.entity.JobpostingHotId;
+import halo.corebridge.jobpostinghot.repository.JobpostingHotRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,9 +20,9 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class HotJobpostingService {
+public class JobpostingHotService {
     
-    private final HotJobpostingRepository hotJobpostingRepository;
+    private final JobpostingHotRepository jobpostingHotRepository;
     private final JobpostingClient jobpostingClient;
     private final ViewClient viewClient;
     private final LikeClient likeClient;
@@ -38,12 +38,12 @@ public class HotJobpostingService {
      * 특정 날짜의 인기 공고 목록 조회
      */
     @Transactional(readOnly = true)
-    public List<HotJobpostingDto.Response> readAll(String dateStr) {
+    public List<JobpostingHotDto.Response> readAll(String dateStr) {
         LocalDate date = LocalDate.parse(dateStr, DATE_FORMATTER);
         
-        return hotJobpostingRepository.findByDateKeyOrderByScoreDesc(date)
+        return jobpostingHotRepository.findByDateKeyOrderByScoreDesc(date)
                 .stream()
-                .map(HotJobpostingDto.Response::from)
+                .map(JobpostingHotDto.Response::from)
                 .toList();
     }
 
@@ -51,12 +51,12 @@ public class HotJobpostingService {
      * 오늘의 인기 공고 TOP N
      */
     @Transactional(readOnly = true)
-    public List<HotJobpostingDto.Response> readTopN(int limit) {
+    public List<JobpostingHotDto.Response> readTopN(int limit) {
         LocalDate today = LocalDate.now();
         
-        return hotJobpostingRepository.findTopByDateKey(today, limit)
+        return jobpostingHotRepository.findTopByDateKey(today, limit)
                 .stream()
-                .map(HotJobpostingDto.Response::from)
+                .map(JobpostingHotDto.Response::from)
                 .toList();
     }
 
@@ -68,7 +68,7 @@ public class HotJobpostingService {
      * 단일 채용공고를 인기 공고로 등록/갱신
      */
     @Transactional
-    public HotJobpostingDto.Response register(Long jobpostingId) {
+    public JobpostingHotDto.Response register(Long jobpostingId) {
         JobpostingClient.JobpostingResponse jobposting = jobpostingClient.read(jobpostingId);
         
         if (jobposting == null) {
@@ -83,13 +83,13 @@ public class HotJobpostingService {
         Long commentCount = commentClient.count(jobpostingId);
 
         // 기존 데이터 확인
-        HotJobpostingId id = new HotJobpostingId(today, jobpostingId);
-        HotJobposting hotJobposting = hotJobpostingRepository.findById(id)
+        JobpostingHotId id = new JobpostingHotId(today, jobpostingId);
+        JobpostingHot jobpostingHot = jobpostingHotRepository.findById(id)
                 .map(existing -> {
                     existing.updateCounts(likeCount, commentCount, viewCount);
                     return existing;
                 })
-                .orElseGet(() -> HotJobposting.create(
+                .orElseGet(() -> JobpostingHot.create(
                         today,
                         jobpostingId,
                         jobposting.getTitle(),
@@ -99,11 +99,11 @@ public class HotJobpostingService {
                         viewCount
                 ));
 
-        hotJobpostingRepository.save(hotJobposting);
+        jobpostingHotRepository.save(jobpostingHot);
         
-        log.info("Registered hot jobposting: id={}, score={}", jobpostingId, hotJobposting.getScore());
+        log.info("Registered hot jobposting: id={}, score={}", jobpostingId, jobpostingHot.getScore());
         
-        return HotJobpostingDto.Response.from(hotJobposting);
+        return JobpostingHotDto.Response.from(jobpostingHot);
     }
 
     /**
@@ -152,10 +152,10 @@ public class HotJobpostingService {
      * 인기 공고 목록에 실시간 통계 반영
      */
     @Transactional(readOnly = true)
-    public List<HotJobpostingDto.Response> readTopNWithLiveStats(int limit) {
+    public List<JobpostingHotDto.Response> readTopNWithLiveStats(int limit) {
         LocalDate today = LocalDate.now();
         
-        List<HotJobposting> hotList = hotJobpostingRepository.findTopByDateKey(today, limit);
+        List<JobpostingHot> hotList = jobpostingHotRepository.findTopByDateKey(today, limit);
         
         return hotList.stream()
                 .map(hot -> {
@@ -164,7 +164,7 @@ public class HotJobpostingService {
                     Long liveLikeCount = likeClient.count(hot.getJobpostingId());
                     Long liveCommentCount = commentClient.count(hot.getJobpostingId());
                     
-                    return HotJobpostingDto.Response.builder()
+                    return JobpostingHotDto.Response.builder()
                             .jobpostingId(hot.getJobpostingId())
                             .title(hot.getTitle())
                             .boardId(hot.getBoardId())
