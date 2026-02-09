@@ -8,6 +8,12 @@ dependencies {
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
+    // Redis (SSE + Pub/Sub)
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Kafka (이벤트 수신)
+    implementation 'org.springframework.kafka:spring-kafka'
+
     // JPA
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 

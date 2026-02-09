@@ -1,9 +1,25 @@
 server:
   port: 8010
+  tomcat:
+    connection-timeout: -1       # SSE 연결 무제한
 
 spring:
+  mvc:
+    async:
+      request-timeout: -1        # 비동기 요청 타임아웃 무제한 (SSE용)
   application:
     name: notification-service
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: notification-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
   datasource:
     url: jdbc:postgresql://localhost:5432/notification
     username: root
