@@ -1,13 +1,24 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
 import NotificationDropdown from '@/components/notification/NotificationDropdown.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
 
 const showUserMenu = ref(false)
+
+// 로그인 상태 변화 감지 → SSE 연결/해제 (immediate: 마운트 시 즉시 평가)
+watch(() => authStore.isVisitor, (isVisitor) => {
+  if (!isVisitor) {
+    notificationStore.connectSSE()
+  } else {
+    notificationStore.disconnectSSE()
+  }
+}, { immediate: true })
 
 async function handleLogout(): Promise<void> {
   await authStore.logout()
