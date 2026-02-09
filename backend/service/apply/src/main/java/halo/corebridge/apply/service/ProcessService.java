@@ -7,7 +7,10 @@ import halo.corebridge.apply.model.entity.RecruitmentProcess;
 import halo.corebridge.apply.model.enums.ProcessStep;
 import halo.corebridge.apply.repository.ProcessHistoryRepository;
 import halo.corebridge.apply.repository.RecruitmentProcessRepository;
+import halo.corebridge.common.event.EventType;
+import halo.corebridge.common.event.NotificationCreatedEventPayload;
 import halo.corebridge.common.exception.BaseException;
+import halo.corebridge.common.outboxmessagerelay.OutboxEventPublisher;
 import halo.corebridge.common.response.BaseResponseStatus;
 import halo.corebridge.common.snowflake.Snowflake;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +34,7 @@ public class ProcessService {
     private final RecruitmentProcessRepository processRepository;
     private final ProcessHistoryRepository historyRepository;
     private final NotificationClient notificationClient;
+    private final OutboxEventPublisher outboxEventPublisher;
 
     // ============================================
     // 프로세스 생성 (ApplyService에서 내부 호출)
@@ -100,13 +104,8 @@ public class ProcessService {
         );
         historyRepository.save(history);
 
-        // 알림 전송 (비동기)
-        notificationClient.sendProcessNotification(
-                process.getUserId(),
-                toStep,
-                process.getApplyId(),
-                process.getJobpostingId()
-        );
+        // 알림 이벤트 발행 (Outbox → Kafka → notification 서비스)
+        publishNotificationEvent(process, toStep);
 
         return ProcessDto.ProcessResponse.from(process);
     }
@@ -354,5 +353,88 @@ public class ProcessService {
         Long failed = processRepository.countByJobpostingIdInAndCurrentStepIn(jobpostingIds, failSteps);
 
         return ProcessDto.CompanyStatsResponse.of(total, pending, interviewing, passed, failed);
+    }
+
+    // ============================================
+    // 알림 이벤트 발행 (Outbox Pattern)
+    // ============================================
+
+    /**
+     * Outbox → Kafka로 알림 이벤트 발행
+     * notification 서비스가 Consumer로 수신하여 DB 저장 + SSE 푸시
+     */
+    private void publishNotificationEvent(RecruitmentProcess process, ProcessStep toStep) {
+        String notificationType = mapStepToNotificationType(toStep);
+        if (notificationType == null) {
+            return; // 알림 대상이 아닌 상태
+        }
+
+        NotificationCreatedEventPayload payload = NotificationCreatedEventPayload.builder()
+                .userId(process.getUserId())
+                .type(notificationType)
+                .title(generateTitle(toStep))
+                .message(generateMessage(toStep))
+                .link("/my/applications/" + process.getApplyId())
+                .relatedId(process.getApplyId())
+                .relatedType("APPLY")
+                .build();
+
+        outboxEventPublisher.publish(
+                EventType.NOTIFICATION_CREATED,
+                payload,
+                process.getUserId()  // shardKey: userId 기반
+        );
+    }
+
+    private String mapStepToNotificationType(ProcessStep step) {
+        return switch (step) {
+            case DOCUMENT_PASS -> "DOCUMENT_PASS";
+            case DOCUMENT_FAIL -> "DOCUMENT_FAIL";
+            case CODING_TEST -> "CODING_TEST_SCHEDULED";
+            case CODING_PASS -> "CODING_TEST_PASS";
+            case CODING_FAIL -> "CODING_TEST_FAIL";
+            case INTERVIEW_1, INTERVIEW_2 -> "INTERVIEW_SCHEDULED";
+            case INTERVIEW_1_PASS, INTERVIEW_2_PASS -> "INTERVIEW_PASS";
+            case INTERVIEW_1_FAIL, INTERVIEW_2_FAIL -> "INTERVIEW_FAIL";
+            case FINAL_PASS -> "FINAL_PASS";
+            case FINAL_FAIL -> "FINAL_FAIL";
+            default -> null;
+        };
+    }
+
+    private String generateTitle(ProcessStep step) {
+        return switch (step) {
+            case DOCUMENT_PASS -> "서류 전형 합격";
+            case DOCUMENT_FAIL -> "서류 전형 결과 안내";
+            case CODING_TEST -> "코딩 테스트 안내";
+            case CODING_PASS -> "코딩 테스트 합격";
+            case CODING_FAIL -> "코딩 테스트 결과 안내";
+            case INTERVIEW_1 -> "1차 면접 안내";
+            case INTERVIEW_2 -> "2차 면접 안내";
+            case INTERVIEW_1_PASS -> "1차 면접 합격";
+            case INTERVIEW_2_PASS -> "2차 면접 합격";
+            case INTERVIEW_1_FAIL, INTERVIEW_2_FAIL -> "면접 결과 안내";
+            case FINAL_PASS -> "🎉 최종 합격을 축하합니다!";
+            case FINAL_FAIL -> "최종 결과 안내";
+            default -> "채용 진행 상태 변경";
+        };
+    }
+
+    private String generateMessage(ProcessStep step) {
+        return switch (step) {
+            case DOCUMENT_PASS -> "서류 전형에 합격하셨습니다. 다음 전형 안내를 확인해주세요.";
+            case DOCUMENT_FAIL -> "서류 전형 결과를 확인해주세요.";
+            case CODING_TEST -> "코딩 테스트 일정이 안내되었습니다. 상세 내용을 확인해주세요.";
+            case CODING_PASS -> "코딩 테스트에 합격하셨습니다. 다음 전형 안내를 확인해주세요.";
+            case CODING_FAIL -> "코딩 테스트 결과를 확인해주세요.";
+            case INTERVIEW_1 -> "1차 면접 일정이 안내되었습니다. 상세 내용을 확인해주세요.";
+            case INTERVIEW_2 -> "2차 면접 일정이 안내되었습니다. 상세 내용을 확인해주세요.";
+            case INTERVIEW_1_PASS -> "1차 면접에 합격하셨습니다. 2차 면접 안내를 확인해주세요.";
+            case INTERVIEW_2_PASS -> "2차 면접에 합격하셨습니다. 최종 결과를 기다려주세요.";
+            case INTERVIEW_1_FAIL, INTERVIEW_2_FAIL -> "면접 결과를 확인해주세요.";
+            case FINAL_PASS -> "최종 합격을 진심으로 축하드립니다! 입사 관련 안내를 확인해주세요.";
+            case FINAL_FAIL -> "채용 결과를 확인해주세요. 좋은 기회가 있으시길 바랍니다.";
+            default -> "채용 진행 상태가 변경되었습니다.";
+        };
     }
 }

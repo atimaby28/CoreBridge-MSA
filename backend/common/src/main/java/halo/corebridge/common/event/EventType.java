@@ -21,6 +21,9 @@ public enum EventType {
 
     // View 이벤트
     JOBPOSTING_VIEWED("corebridge-view", JobpostingViewedEventPayload.class),
+
+    // Notification 이벤트
+    NOTIFICATION_CREATED("corebridge-notification", NotificationCreatedEventPayload.class),
     ;
 
     private final String topic;

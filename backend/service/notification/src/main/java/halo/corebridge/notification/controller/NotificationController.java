@@ -3,13 +3,16 @@ package halo.corebridge.notification.controller;
 import halo.corebridge.common.response.BaseResponse;
 import halo.corebridge.notification.model.dto.NotificationDto;
 import halo.corebridge.notification.service.NotificationService;
+import halo.corebridge.notification.service.SseEmitterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -23,6 +26,23 @@ import java.util.List;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final SseEmitterService sseEmitterService;
+
+    /**
+     * SSE 구독 — 실시간 알림 수신
+     * Gateway 경유 시: @AuthenticationPrincipal로 userId 추출
+     * 직접 연결 시: ?userId= 쿼리 파라미터로 userId 전달
+     */
+    @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribe(
+            @AuthenticationPrincipal Long authUserId,
+            @RequestParam(value = "userId", required = false) Long queryUserId) {
+        Long userId = authUserId != null ? authUserId : queryUserId;
+        if (userId == null) {
+            throw new IllegalArgumentException("userId is required");
+        }
+        return sseEmitterService.subscribe(userId);
+    }
 
     /**
      * 내 알림 목록 조회 (페이징)

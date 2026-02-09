@@ -23,6 +23,12 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 # JWT 설정
 jwt:
   secret: corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256
@@ -34,10 +40,14 @@ audit:
   enabled: true
   service-name: apply
   service-url: http://localhost:8012
-# 알림 서비스 설정
+# 알림 서비스 설정 (HTTP fallback)
 notification:
   service:
     url: http://localhost:8010
+
+# Outbox Pattern 설정
+outbox:
+  enabled: true
 
 # AI 서비스 설정
 ai:

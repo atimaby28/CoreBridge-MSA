@@ -54,7 +54,7 @@ backend/
 | jobposting-read | 8007 | | ✅ (5개) | ✅ | Aggregator, ConcurrentHashMap 캐시 |
 | resume | 8008 | | | | |
 | apply | 8009 | | | | State Machine |
-| notification | 8010 | | | | 알림 |
+| notification | 8010 | | | | SSE + Redis Pub/Sub |
 | schedule | 8011 | | | | 면접 일정 |
 | admin-audit | 8012 | | | | 감사 로그 |
 

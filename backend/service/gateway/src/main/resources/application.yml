@@ -63,6 +63,15 @@ spring:
           predicates:
             - Path=/api/v1/schedules/**
 
+        # Notification SSE (8010) - SSE 스트리밍용 별도 라우트 (타임아웃 연장)
+        - id: notification-sse
+          uri: http://localhost:8010
+          predicates:
+            - Path=/api/v1/notifications/subscribe
+          metadata:
+            response-timeout: 3600000    # 1시간
+            connect-timeout: 5000
+
         # Notification Service (8010)
         - id: notification-service
           uri: http://localhost:8010

@@ -1,5 +1,6 @@
 package halo.corebridge.notification.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import halo.corebridge.notification.model.dto.NotificationDto;
 import halo.corebridge.notification.model.entity.Notification;
 import halo.corebridge.notification.model.enums.NotificationType;
@@ -10,18 +11,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,6 +34,12 @@ class NotificationServiceTest {
 
     @Mock
     private NotificationRepository notificationRepository;
+
+    @Mock
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Spy
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private NotificationService notificationService;
@@ -51,7 +62,7 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("알림 생성 성공")
+    @DisplayName("알림 생성 성공 + Redis Pub/Sub 발행")
     void createNotification_Success() {
         // given
         NotificationDto.CreateRequest request = NotificationDto.CreateRequest.builder()
@@ -62,6 +73,7 @@ class NotificationServiceTest {
                 .build();
 
         given(notificationRepository.save(any(Notification.class))).willReturn(testNotification);
+        doNothing().when(stringRedisTemplate).convertAndSend(anyString(), anyString());
 
         // when
         NotificationDto.CreateResponse response = notificationService.create(request);
@@ -69,6 +81,7 @@ class NotificationServiceTest {
         // then
         assertThat(response.isSuccess()).isTrue();
         assertThat(response.getId()).isEqualTo(1L);
+        verify(stringRedisTemplate).convertAndSend(anyString(), anyString());
     }
 
     @Test
