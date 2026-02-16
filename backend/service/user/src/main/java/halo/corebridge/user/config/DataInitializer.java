@@ -28,28 +28,33 @@ public class DataInitializer implements ApplicationRunner {
 
     private static final String DEFAULT_PASSWORD = "qwer1234";
 
+    // 고정 ID — Jobposting/Resume DataInitializer와 공유 (Snowflake 범위)
+    private static final long ADMIN_ID   = 11234023833772033L;
+    private static final long COMPANY_ID = 11234023833772034L;
+    private static final long USER_ID   = 11234028028076038L;
+
     @Override
     public void run(ApplicationArguments args) {
         // Admin
-        createUserIfNotExists("admin@test.com", "관리자", UserRole.ROLE_ADMIN);
+        createUserIfNotExists(ADMIN_ID, "admin@test.com", "관리자", UserRole.ROLE_ADMIN);
 
         // Company (기업)
-        createUserIfNotExists("company@test.com", "테크컴퍼니 채용팀", UserRole.ROLE_COMPANY);
+        createUserIfNotExists(COMPANY_ID, "company@test.com", "테크컴퍼니", UserRole.ROLE_COMPANY);
 
         // User (지원자)
-        createUserIfNotExists("user@test.com", "양승우", UserRole.ROLE_USER);
+        createUserIfNotExists(USER_ID, "user@test.com", "양승우", UserRole.ROLE_USER);
 
         log.info("=== DataInitializer 완료 ===");
     }
 
-    private void createUserIfNotExists(String email, String nickname, UserRole role) {
+    private void createUserIfNotExists(Long userId, String email, String nickname, UserRole role) {
         if (userRepository.existsByEmail(email)) {
             log.info("계정이 이미 존재합니다: {} ({})", email, role);
             return;
         }
 
         User user = User.create(
-                snowflake.nextId(),
+                userId,
                 email,
                 nickname,
                 passwordEncoder.encode(DEFAULT_PASSWORD),
@@ -57,6 +62,6 @@ public class DataInitializer implements ApplicationRunner {
         );
 
         userRepository.save(user);
-        log.info("계정 생성 완료: {} / {} ({})", email, nickname, role);
+        log.info("계정 생성 완료: {} / {} / ID={} ({})", email, nickname, userId, role);
     }
 }

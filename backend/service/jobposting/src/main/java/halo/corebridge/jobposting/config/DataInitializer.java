@@ -3,7 +3,6 @@ package halo.corebridge.jobposting.config;
 import halo.corebridge.common.snowflake.Snowflake;
 import halo.corebridge.jobposting.model.entity.Jobposting;
 import halo.corebridge.jobposting.repository.JobpostingRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -16,15 +15,19 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
 
     private final JobpostingRepository jobpostingRepository;
-    private final Snowflake snowflake = new Snowflake();
 
-    // company@test.com 계정의 ID는 런타임에 결정되므로, 고정 시드 userId 사용
-    // (User 서비스와 DB가 분리되어 있으므로, 실제 로그인 후 공고 작성 시 userId가 매핑됨)
-    private static final Long COMPANY_USER_ID = 1L;
+    private final Snowflake snowflake;
+
+    public DataInitializer(JobpostingRepository jobpostingRepository) {
+        this.jobpostingRepository = jobpostingRepository;
+        this.snowflake = new Snowflake();
+    }
+
+    // User 서비스 DataInitializer의 COMPANY_ID와 동일 (Snowflake 범위)
+    private static final Long COMPANY_USER_ID = 11234023833772034L;
     private static final Long BOARD_ID = 1L;
 
     @Override
