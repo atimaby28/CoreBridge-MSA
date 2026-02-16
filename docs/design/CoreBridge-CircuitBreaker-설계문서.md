@@ -51,7 +51,7 @@ resilience4j:
         slidingWindowType: COUNT_BASED
         slidingWindowSize: 10
         failureRateThreshold: 50
-        waitDurationInOpenState: 10s
+        waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
         minimumNumberOfCalls: 5
 ```
@@ -70,12 +70,12 @@ resilience4j:
 
 10개 요청 중 5개 이상 실패하면 서비스 장애로 판단. 단일 타임아웃이나 일시적 오류는 무시하되, 지속적 장애는 빠르게 감지.
 
-### waitDurationInOpenState = 10s
+### waitDurationInOpenState = 30s
 
 | 값 | 동작 |
 |----|------|
-| 1~3s | 장애 서비스에 너무 빨리 재시도 → 부하 가중 |
-| **10s** | 일반적인 서비스 재시작/복구 시간을 고려한 설정 |
+| 1~10s | 장애 서비스에 너무 빨리 재시도 → 부하 가중 |
+| **30s** | Spring Boot 재시작(~30초) + K8s readinessProbe 통과 시간을 고려. 10초는 장애 서비스에 너무 빨리 재시도하여 부하 가중 |
 | 60s+ | 복구된 서비스를 오래 차단 → 불필요한 Fallback 지속 |
 
 ### 5개 서비스별 독립 인스턴스

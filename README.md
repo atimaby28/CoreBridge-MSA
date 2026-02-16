@@ -11,7 +11,7 @@
 
 | 패턴 | 해결한 문제 | 기술 |
 |------|-----------|------|
-| **Outbox Pattern** | 서비스 간 데이터 일관성 (Dual Write 방지) | Outbox + Kafka (4 Topic, 4 Producer) |
+| **Outbox Pattern** | 서비스 간 데이터 일관성 (Dual Write 방지) | Outbox + Kafka (5 Topic, 5 Producer) |
 | **Circuit Breaker** | 장애 전파 차단 (Cascading Failure) | Resilience4j (5개 독립 인스턴스) |
 | **CQRS + Batch** | 읽기 성능 최적화 | ConcurrentHashMap 캐시 + Kafka 이벤트 동기화 |
 | **AI Pipeline** | LLM 80초 블로킹 → 스레드 풀 고갈 | FastAPI + Ollama + n8n 비동기 (99.7% 응답시간 단축) |
@@ -81,7 +81,7 @@ API Gateway (:8000)  ─── JWT 중앙 검증, 라우팅
 │  admin-audit  :8012   관리자 감사 로그                │
 └─────────────────────────────────────────────────────┘
     ↓                        ↓
-  Kafka (4 Topics)      AI Pipeline
+  Kafka (5 Topics)      AI Pipeline
   Outbox → Consumer     FastAPI :9001 + Ollama :11434 + n8n :5678
 ```
 
@@ -218,7 +218,7 @@ cd backend
 ./gradlew test
 ```
 
-Java 233파일, 테스트 27개 (단위 + 통합)
+Java 233파일, 테스트 29개 (단위 + 통합)
 
 ---
 

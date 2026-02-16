@@ -118,7 +118,7 @@ common/
                                │
                                ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                         Kafka (4 Topics)                         │
+│                         Kafka (5 Topics)                         │
 │  corebridge-jobposting │ corebridge-comment │ corebridge-like   │
 │  corebridge-view       │ corebridge-notification                │
 └──────────────────────────────┬───────────────────────────────────┘

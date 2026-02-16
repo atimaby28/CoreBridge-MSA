@@ -132,7 +132,7 @@ ServerHttpRequest mutatedRequest = request.mutate()
 | jobposting-read | `/api/v1/jobposting-read/**` | read | 8007 |
 | resume-service | `/api/v1/resumes/**` | resume | 8008 |
 | apply-service | `/api/v1/applies/**`, `/api/v1/processes/**`, `/api/v1/ai-matching/**` | apply | 8009 |
-| notification-service | `/api/v1/notifications/**` | notification | 8011 |
+| notification-service | `/api/v1/notifications/**` | notification | 8010 |
 | schedule-service | `/api/v1/schedules/**` | schedule | 8011 |
 | admin-audit | `/api/v1/admin/**`, `/api/v1/audit/**` | audit | 8012 |
 
