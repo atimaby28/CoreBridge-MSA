@@ -254,6 +254,67 @@
           </div>
         </div>
       </div>
+
+      <!-- 이력서 확인 & 지원 모달 -->
+      <div
+        v-if="showApplyModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        @click.self="showApplyModal = false"
+      >
+        <div class="bg-white rounded-lg max-w-lg w-full mx-4 overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200 bg-indigo-50">
+            <h3 class="text-lg font-semibold text-gray-900">📄 이력서 확인 후 지원</h3>
+            <p class="text-sm text-gray-600 mt-1">아래 이력서로 지원합니다.</p>
+          </div>
+
+          <div v-if="myResume" class="px-6 py-4">
+            <!-- 이력서 요약 -->
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+              <h4 class="font-semibold text-gray-900 mb-2">{{ myResume.title || '제목 없음' }}</h4>
+              <p class="text-sm text-gray-600 whitespace-pre-wrap max-h-36 overflow-y-auto">{{ myResume.content }}</p>
+            </div>
+
+            <!-- 보유 스킬 -->
+            <div v-if="myResume.skills && myResume.skills.length > 0" class="mb-4">
+              <p class="text-sm font-medium text-gray-700 mb-2">보유 스킬</p>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-for="skill in myResume.skills"
+                  :key="skill"
+                  class="px-2.5 py-1 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-full"
+                >
+                  {{ skill }}
+                </span>
+              </div>
+            </div>
+
+            <!-- 이력서 수정 링크 -->
+            <p class="text-xs text-gray-500">
+              이력서를 수정하려면
+              <router-link to="/my/resume" class="text-indigo-600 hover:underline" @click="showApplyModal = false">
+                이력서 관리
+              </router-link>
+              에서 수정 후 다시 지원해주세요.
+            </p>
+          </div>
+
+          <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+            <button
+              @click="showApplyModal = false"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              취소
+            </button>
+            <button
+              @click="confirmApply"
+              :disabled="applying"
+              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {{ applying ? '지원 중...' : '이 이력서로 지원하기' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -265,6 +326,8 @@ import { storeToRefs } from 'pinia'
 import { useJobpostingStore } from '@/stores/jobposting'
 import { useAuthStore } from '@/stores/auth'
 import { useApplyStore } from '@/stores/apply'
+import { getMyResume } from '@/api/resume'
+import type { ResumeResponse } from '@/types/resume'
 
 const router = useRouter()
 const route = useRoute()
@@ -282,6 +345,9 @@ const showDeleteModal = ref(false)
 const deleting = ref(false)
 const applying = ref(false)
 const hasApplied = ref(false)
+const myResume = ref<ResumeResponse | null>(null)
+const resumeLoading = ref(false)
+const showApplyModal = ref(false)
 
 // 작성자 여부
 const isOwner = computed(() => {
@@ -332,12 +398,36 @@ async function handleLike() {
   }
 }
 
-// 지원하기
+// 지원하기 클릭 → 이력서 확인 후 모달
 async function handleApply() {
   if (!isAuthenticated.value || !jobposting.value || !userId.value) return
   if (applying.value || hasApplied.value) return
   
+  // 이력서 확인
+  resumeLoading.value = true
+  try {
+    const resume = await getMyResume()
+    if (!resume || !resume.content || resume.content.trim() === '') {
+      alert('이력서를 먼저 작성해주세요!')
+      router.push('/my/resume')
+      return
+    }
+    myResume.value = resume
+    showApplyModal.value = true
+  } catch (e) {
+    alert('이력서를 먼저 작성해주세요!')
+    router.push('/my/resume')
+  } finally {
+    resumeLoading.value = false
+  }
+}
+
+// 이력서 확인 후 실제 지원 실행
+async function confirmApply() {
+  if (!isAuthenticated.value || !jobposting.value || !userId.value) return
+  
   applying.value = true
+  showApplyModal.value = false
   try {
     await applyStore.createApply({
       userId: userId.value,

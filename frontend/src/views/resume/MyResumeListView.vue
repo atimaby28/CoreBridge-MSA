@@ -310,11 +310,12 @@ Java, Spring Boot, PostgreSQL, Redis, Kubernetes"
 
         <!-- 도움말 -->
         <div class="bg-blue-50 rounded-xl p-4 border border-blue-100">
-          <h4 class="font-medium text-blue-800 mb-2">💡 AI 분석 기능</h4>
+          <h4 class="font-medium text-blue-800 mb-2">💡 AI Pipeline 기능</h4>
           <ul class="text-sm text-blue-700 space-y-1">
-            <li>• 이력서 내용을 자동 요약</li>
-            <li>• 기술 스택 자동 추출</li>
-            <li>• JD 매칭 점수 산출 (예정)</li>
+            <li>• FastAPI + Ollama 기반 이력서 자동 요약</li>
+            <li>• 기술 스택 자동 추출 및 태깅</li>
+            <li>• JD 매칭 점수 산출 (코사인 유사도)</li>
+            <li>• 스킬 갭 분석 (보유/부족 스킬 비교)</li>
           </ul>
         </div>
       </div>

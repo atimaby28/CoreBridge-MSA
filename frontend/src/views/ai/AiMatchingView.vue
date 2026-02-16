@@ -32,39 +32,84 @@
               >채용공고 작성하러 가기</router-link>
             </div>
 
-            <!-- 채용공고 목록 -->
+            <!-- 채용공고 드롭다운 선택 -->
             <div v-else class="space-y-3">
-              <div
-                v-for="jp in myJobpostings"
-                :key="jp.jobpostingId"
-                @click="selectJobposting(jp)"
-                :class="[
-                  'p-4 rounded-lg border-2 cursor-pointer transition-all',
-                  selectedJobposting?.jobpostingId === jp.jobpostingId
-                    ? 'border-purple-500 bg-purple-50 shadow-md'
-                    : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
-                ]"
-              >
-                <div class="flex items-start justify-between">
+              <!-- 드롭다운 셀렉터 -->
+              <div class="relative" ref="dropdownRef">
+                <button
+                  @click="showDropdown = !showDropdown"
+                  class="w-full px-4 py-3 border-2 rounded-lg text-left flex items-center justify-between transition-all"
+                  :class="selectedJobposting ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-purple-300'"
+                >
                   <div class="flex-1 min-w-0">
-                    <h3 class="font-medium text-gray-900 truncate">{{ jp.title }}</h3>
-                    <p class="text-sm text-gray-500 mt-1 line-clamp-2">{{ jp.content }}</p>
-                    <div v-if="jp.requiredSkills && jp.requiredSkills.length > 0" class="mt-2 flex flex-wrap gap-1">
-                      <span
-                        v-for="skill in jp.requiredSkills.slice(0, 5)"
-                        :key="skill"
-                        class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full"
-                      >{{ skill }}</span>
-                      <span v-if="jp.requiredSkills.length > 5" class="text-xs text-gray-400">
-                        +{{ jp.requiredSkills.length - 5 }}
-                      </span>
-                    </div>
+                    <span v-if="selectedJobposting" class="font-medium text-gray-900">{{ selectedJobposting.title }}</span>
+                    <span v-else class="text-gray-400">채용공고를 선택하세요 ({{ myJobpostings.length }}건)</span>
                   </div>
-                  <div v-if="selectedJobposting?.jobpostingId === jp.jobpostingId" class="ml-3 flex-shrink-0">
-                    <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                  <svg
+                    class="w-5 h-5 text-gray-400 flex-shrink-0 ml-2 transition-transform duration-200"
+                    :class="{ 'rotate-180': showDropdown }"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                <!-- 드롭다운 목록 -->
+                <div
+                  v-if="showDropdown"
+                  class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto"
+                >
+                  <div
+                    v-for="jp in myJobpostings"
+                    :key="jp.jobpostingId"
+                    @click="selectJobposting(jp); showDropdown = false"
+                    class="px-4 py-3 cursor-pointer transition-colors flex items-center justify-between"
+                    :class="[
+                      selectedJobposting?.jobpostingId === jp.jobpostingId
+                        ? 'bg-purple-50 text-purple-700'
+                        : 'hover:bg-gray-50 text-gray-700'
+                    ]"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <p class="font-medium truncate">{{ jp.title }}</p>
+                      <div v-if="jp.requiredSkills && jp.requiredSkills.length > 0" class="mt-1 flex flex-wrap gap-1">
+                        <span
+                          v-for="skill in jp.requiredSkills.slice(0, 3)"
+                          :key="skill"
+                          class="px-1.5 py-0.5 bg-purple-100 text-purple-600 text-xs rounded"
+                        >{{ skill }}</span>
+                        <span v-if="jp.requiredSkills.length > 3" class="text-xs text-gray-400">+{{ jp.requiredSkills.length - 3 }}</span>
+                      </div>
+                    </div>
+                    <svg
+                      v-if="selectedJobposting?.jobpostingId === jp.jobpostingId"
+                      class="w-5 h-5 text-purple-600 flex-shrink-0 ml-2"
+                      fill="currentColor" viewBox="0 0 20 20"
+                    >
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                     </svg>
                   </div>
+                </div>
+              </div>
+
+              <!-- 선택된 공고 상세 (아코디언 펼침) -->
+              <div
+                v-if="selectedJobposting"
+                class="border-2 border-purple-200 bg-purple-50 rounded-lg p-4 transition-all"
+              >
+                <div class="flex items-center gap-2 mb-2">
+                  <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <h3 class="font-semibold text-purple-800">{{ selectedJobposting.title }}</h3>
+                </div>
+                <p class="text-sm text-gray-600 line-clamp-3">{{ selectedJobposting.content }}</p>
+                <div v-if="selectedJobposting.requiredSkills && selectedJobposting.requiredSkills.length > 0" class="mt-3 flex flex-wrap gap-1.5">
+                  <span
+                    v-for="skill in selectedJobposting.requiredSkills"
+                    :key="skill"
+                    class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full"
+                  >{{ skill }}</span>
                 </div>
               </div>
             </div>
@@ -138,7 +183,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { matchCandidates, scoreCandidate } from '@/api/aiMatching'
 import { jobpostingService } from '@/api/jobposting'
 import type { MatchedCandidate, AiScoreResponse } from '@/types/aiMatching'
@@ -157,13 +202,24 @@ const matches = ref<MatchedCandidate[]>([])
 const selectedCandidate = ref<MatchedCandidate | null>(null)
 const scoreResult = ref<AiScoreResponse | null>(null)
 
+// 드롭다운 상태
+const showDropdown = ref(false)
+const dropdownRef = ref<HTMLElement | null>(null)
+
 const requiredSkills = computed(() => {
   if (!skillsInput.value.trim()) return undefined
   return skillsInput.value.split(',').map(s => s.trim()).filter(s => s)
 })
 
-// 내 채용공고 불러오기
+// 드롭다운 외부 클릭 감지
+function handleClickOutside(e: MouseEvent) {
+  if (dropdownRef.value && !dropdownRef.value.contains(e.target as Node)) {
+    showDropdown.value = false
+  }
+}
+
 onMounted(async () => {
+  document.addEventListener('click', handleClickOutside)
   try {
     const response = await jobpostingService.getMyJobpostings()
     myJobpostings.value = response.jobpostings || []
@@ -174,17 +230,20 @@ onMounted(async () => {
   }
 })
 
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
 // 채용공고 선택
 function selectJobposting(jp: Jobposting) {
   selectedJobposting.value = jp
-  // 스킬 자동 채우기
   const skills: string[] = []
   if (jp.requiredSkills) skills.push(...jp.requiredSkills)
   if (jp.preferredSkills) skills.push(...jp.preferredSkills)
   skillsInput.value = [...new Set(skills)].join(', ')
 }
 
-// JD 텍스트 조합 (선택된 채용공고에서)
+// JD 텍스트 조합
 function buildJdText(): string {
   if (!selectedJobposting.value) return ''
   const jp = selectedJobposting.value
@@ -230,7 +289,6 @@ async function handleSelectCandidate(candidate: MatchedCandidate) {
     alert('상세 점수 계산에 실패했습니다. AI 분석에 시간이 오래 걸릴 수 있습니다. 다시 시도해주세요.')
   } finally {
     scoring.value = false
-    // 결과가 없으면 모달 닫기
     if (!scoreResult.value) {
       selectedCandidate.value = null
     }

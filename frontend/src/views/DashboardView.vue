@@ -27,7 +27,7 @@ const auditStats = ref<AuditStatsResponse | null>(null)
 const recentAudits = ref<AuditResponse[]>([])
 
 // 인기 공고 & 최신 공고
-const jobpostingHotList = ref<JobpostingHotResponse[]>([])
+const hotJobpostings = ref<JobpostingHotResponse[]>([])
 const recentJobpostings = ref<JobpostingReadResponse[]>([])
 
 // User 통계
@@ -160,12 +160,12 @@ async function loadCompanyDashboardStats() {
 }
 
 // 인기 공고 로드
-async function loadJobpostingHot() {
+async function loadHotJobpostings() {
   try {
-    jobpostingHotList.value = await hotService.getJobpostingHotToday()
+    hotJobpostings.value = await hotService.getJobpostingHotToday()
   } catch (e) {
     console.error('인기 공고 로드 실패:', e)
-    jobpostingHotList.value = []
+    hotJobpostings.value = []
   }
 }
 
@@ -181,7 +181,7 @@ async function loadRecentJobpostings() {
 }
 
 // 공고 상세 페이지로 이동
-function goToJobposting(jobpostingId: number) {
+function goToJobposting(jobpostingId: string | number) {
   router.push(`/jobpostings/${jobpostingId}`)
 }
 
@@ -229,7 +229,7 @@ onMounted(async () => {
     if (authStore.isAdmin) {
       await Promise.all([loadUserStats(), loadAuditStats()])
     } else {
-      const promises: Promise<void>[] = [loadJobpostingHot(), loadRecentJobpostings()]
+      const promises: Promise<void>[] = [loadHotJobpostings(), loadRecentJobpostings()]
 
       // User: 지원 통계 로드
       if (authStore.isUser) {
@@ -389,6 +389,66 @@ onMounted(async () => {
 
     <!-- ========== User / Company 대시보드 ========== -->
     <template v-else>
+      <!-- 핵심 아키텍처 소개 배너 -->
+      <div class="card bg-gradient-to-r from-primary-50 to-blue-50 border-primary-200 mb-6">
+        <div class="flex items-start space-x-3">
+          <span class="text-2xl flex-shrink-0">🚀</span>
+          <div class="flex-1">
+            <h3 class="font-semibold text-primary-900 text-lg">CoreBridge — MSA 핵심 아키텍처 데모</h3>
+            <p class="text-sm text-primary-700 mt-1">
+              13개 마이크로서비스의 핵심 패턴을 단일 앱에서 체험할 수 있습니다.
+            </p>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+              <div class="flex items-start gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <span class="text-base mt-0.5">📤</span>
+                <div>
+                  <p class="text-xs font-semibold text-primary-900">Outbox Pattern</p>
+                  <p class="text-xs text-primary-600">트랜잭션 보장 이벤트 발행으로 서비스 간 데이터 일관성 확보</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <span class="text-base mt-0.5">🔌</span>
+                <div>
+                  <p class="text-xs font-semibold text-primary-900">Circuit Breaker</p>
+                  <p class="text-xs text-primary-600">외부 서비스 장애 시 자동 차단 및 Fallback으로 장애 격리</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <span class="text-base mt-0.5">⚡</span>
+                <div>
+                  <p class="text-xs font-semibold text-primary-900">CQRS + Batch</p>
+                  <p class="text-xs text-primary-600">읽기/쓰기 분리와 Spring Batch로 대량 데이터 성능 최적화</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <span class="text-base mt-0.5">🤖</span>
+                <div>
+                  <p class="text-xs font-semibold text-primary-900">AI Pipeline</p>
+                  <p class="text-xs text-primary-600">FastAPI + Ollama + n8n 비동기 워크플로우로 이력서 분석·매칭</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <span class="text-base mt-0.5">🛡️</span>
+                <div>
+                  <p class="text-xs font-semibold text-primary-900">API Gateway</p>
+                  <p class="text-xs text-primary-600">JWT 인증 중앙화 및 라우팅으로 서비스별 책임 분리</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <span class="text-base mt-0.5">☸️</span>
+                <div>
+                  <p class="text-xs font-semibold text-primary-900">K8s + CI/CD</p>
+                  <p class="text-xs text-primary-600">K3s 클러스터 위 Jenkins + Kaniko 무중단 배포 파이프라인</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-primary-400 mt-3">
+              Contact: atimaby28@gmail.com · GitHub: github.com/atimaby28/CoreBridge-MSA
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- User 전용: 통계 카드 -->
       <div v-if="authStore.isUser" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="card">
@@ -454,7 +514,7 @@ onMounted(async () => {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-500">진행중 공고</p>
-              <p class="text-2xl font-bold text-gray-900">{{ companyStats.activeJobpostings }}</p>
+              <p class="text-2xl font-bold text-gray-900">{{ companyStats.activeJobpostings }}건</p>
             </div>
             <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -468,7 +528,7 @@ onMounted(async () => {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-500">총 지원자</p>
-              <p class="text-2xl font-bold text-green-600">{{ companyStats.totalApplicants }}</p>
+              <p class="text-2xl font-bold text-green-600">{{ companyStats.totalApplicants }}명</p>
             </div>
             <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -482,7 +542,7 @@ onMounted(async () => {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-500">면접 예정</p>
-              <p class="text-2xl font-bold text-yellow-600">{{ companyStats.interviewingApplicants }}</p>
+              <p class="text-2xl font-bold text-yellow-600">{{ companyStats.interviewingApplicants }}명</p>
             </div>
             <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -496,7 +556,7 @@ onMounted(async () => {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-500">채용 완료</p>
-              <p class="text-2xl font-bold text-purple-600">{{ companyStats.passedApplicants }}</p>
+              <p class="text-2xl font-bold text-purple-600">{{ companyStats.passedApplicants }}명</p>
             </div>
             <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -519,12 +579,12 @@ onMounted(async () => {
           </div>
           
           <div v-if="loading" class="py-8 text-center text-gray-500">로딩중...</div>
-          <div v-else-if="jobpostingHotList.length === 0" class="py-8 text-center text-gray-500">
+          <div v-else-if="hotJobpostings.length === 0" class="py-8 text-center text-gray-500">
             인기 공고가 없습니다
           </div>
           <div v-else class="space-y-1">
             <div
-              v-for="(job, index) in jobpostingHotList.slice(0, 5)"
+              v-for="(job, index) in hotJobpostings.slice(0, 5)"
               :key="job.jobpostingId"
               @click="goToJobposting(job.jobpostingId)"
               class="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
@@ -568,26 +628,6 @@ onMounted(async () => {
                 <p class="text-sm text-gray-500">{{ job.nickname || '익명' }}</p>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 안내 메시지 -->
-      <div class="card bg-blue-50 border-blue-200 mt-6">
-        <div class="flex items-start space-x-3">
-          <svg class="w-6 h-6 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div>
-            <h3 class="font-medium text-blue-900">
-              {{ authStore.isCompany ? '채용 관리 기능 준비 중' : '취업 지원 기능 준비 중' }}
-            </h3>
-            <p class="text-sm text-blue-700 mt-1">
-              {{ authStore.isCompany 
-                ? '채용공고 등록, 지원자 관리 기능이 곧 추가됩니다.'
-                : '채용공고 검색, 지원 관리 기능이 곧 추가됩니다.' 
-              }}
-            </p>
           </div>
         </div>
       </div>
