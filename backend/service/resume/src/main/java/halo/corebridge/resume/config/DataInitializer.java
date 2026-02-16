@@ -45,7 +45,7 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     // User 서비스 DataInitializer의 USER1_ID와 동일 (Snowflake 범위)
-    private static final Long USER_ID = 11234028028076033L;
+    private static final Long USER_ID = 11234028028076038L;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -61,7 +61,7 @@ public class DataInitializer implements ApplicationRunner {
                 
                 ## 기본 정보
                 - 희망 직무: 백엔드 개발자
-                - 이메일: user1@test.com
+                - 이메일: aquageek94@naver.com
                 
                 ## 학력
                 - 전남대학교 IoT AI 융합전공 (2015 ~ 2021)
