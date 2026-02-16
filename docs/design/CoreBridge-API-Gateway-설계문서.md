@@ -11,6 +11,25 @@
 
 ---
 
+## 1-1. 왜 API Gateway인가?
+
+| 대안 | 동작 방식 | 문제점 | 판정 |
+|------|----------|--------|------|
+| **서비스별 직접 노출** | 프론트엔드가 13개 서비스에 직접 호출 | 포트 관리 복잡 (8001~8012), 각 서비스가 개별 JWT 검증 → 코드 중복 | ❌ |
+| **Nginx Reverse Proxy** | 경로 기반 라우팅만 수행 | JWT 검증 불가 (Lua 스크립트 필요), 헤더 주입 로직 구현 어려움 | ❌ |
+| **Spring Cloud Gateway** | WebFlux 기반 비동기 Gateway, GlobalFilter로 JWT 중앙 검증 + 헤더 주입 | Spring 생태계와 자연스러운 통합, Reactive 논블로킹 | ✅ |
+
+### 왜 Cookie 기반 JWT인가? (Authorization Header 대비)
+
+| 공격 벡터 | Authorization Header | HttpOnly Cookie |
+|----------|---------------------|-----------------|
+| **XSS** | ❌ localStorage에 토큰 저장 → JS로 탈취 가능 | ✅ HttpOnly 플래그로 JS 접근 차단 |
+| **CSRF** | ✅ 자동 전송 안됨 | ⚠️ SameSite=Strict + CORS Origin 제한으로 방어 |
+
+**선택 근거**: XSS는 방어 실패 시 토큰 탈취로 이어지지만, CSRF는 SameSite + CORS 조합으로 구조적 차단 가능. XSS 방어를 우선시하여 Cookie 방식 채택.
+
+---
+
 ## 2. 아키텍처
 
 ```
@@ -30,8 +49,8 @@
               ▼                       ▼                       ▼
     [user :8001]          [jobposting :8002]        [apply :8009]
     [comment :8003]       [view :8004]             [resume :8008]
-    [like :8005]          [hot :8006]              [schedule :8012]
-    [read :8007]          [notification :8010]     [audit :8012]
+    [like :8005]          [hot :8006]              [schedule :8011]
+    [read :8007]          [notification :8010]     [admin-audit :8012]
 ```
 
 ---
@@ -114,7 +133,7 @@ ServerHttpRequest mutatedRequest = request.mutate()
 | resume-service | `/api/v1/resumes/**` | resume | 8008 |
 | apply-service | `/api/v1/applies/**`, `/api/v1/processes/**`, `/api/v1/ai-matching/**` | apply | 8009 |
 | notification-service | `/api/v1/notifications/**` | notification | 8011 |
-| schedule-service | `/api/v1/schedules/**` | schedule | 8012 |
+| schedule-service | `/api/v1/schedules/**` | schedule | 8011 |
 | admin-audit | `/api/v1/admin/**`, `/api/v1/audit/**` | audit | 8012 |
 
 **라우팅 순서**: 더 구체적인 경로가 먼저 (read > jobposting)
