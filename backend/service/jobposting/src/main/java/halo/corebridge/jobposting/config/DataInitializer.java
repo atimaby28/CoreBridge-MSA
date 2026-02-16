@@ -4,25 +4,36 @@ import halo.corebridge.common.snowflake.Snowflake;
 import halo.corebridge.jobposting.model.entity.Jobposting;
 import halo.corebridge.jobposting.repository.JobpostingRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 애플리케이션 시작 시 샘플 채용공고 5개를 생성하는 초기화 클래스.
- * - Repository 직접 사용 (Outbox/Kafka 의존 없이 독립 실행 가능)
- * - 이미 데이터가 있으면 스킵
+ * - PostgreSQL 저장 + FastAPI /save_jobposting (Redis Vector DB 등록)
+ * - AI 서비스 미실행 시에도 PostgreSQL 저장은 정상 동작
  */
 @Slf4j
 @Component
 public class DataInitializer implements ApplicationRunner {
 
     private final JobpostingRepository jobpostingRepository;
-
+    private final RestTemplate restTemplate;
     private final Snowflake snowflake;
 
-    public DataInitializer(JobpostingRepository jobpostingRepository) {
+    @Value("${ai.service.url:http://localhost:9001}")
+    private String aiServiceUrl;
+
+    public DataInitializer(JobpostingRepository jobpostingRepository,
+                           RestTemplate restTemplate) {
         this.jobpostingRepository = jobpostingRepository;
+        this.restTemplate = restTemplate;
         this.snowflake = new Snowflake();
     }
 
@@ -138,5 +149,35 @@ public class DataInitializer implements ApplicationRunner {
         );
         jobpostingRepository.save(jobposting);
         log.info("채용공고 생성: {}", title);
+
+        // FastAPI /save_jobposting 호출 → Redis Vector DB에 임베딩 등록
+        registerToVectorDb(jobposting.getJobpostingId(),
+                title + "\n" + content + "\n필수 스킬: " + requiredSkills +
+                        "\n우대 스킬: " + preferredSkills);
+    }
+
+    /**
+     * FastAPI /save_jobposting 호출하여 Redis Vector DB에 채용공고 임베딩 등록.
+     * AI 서비스가 실행 중이 아니면 경고 로그만 남기고 스킵.
+     */
+    private void registerToVectorDb(Long jobpostingId, String jobpostingText) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("jobposting_id", String.valueOf(jobpostingId));
+            body.put("jobposting_text", jobpostingText);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+            String url = aiServiceUrl + "/save_jobposting";
+            Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
+
+            log.info("채용공고 Vector DB 등록 완료: jobpostingId={}", jobpostingId);
+
+        } catch (Exception e) {
+            log.warn("채용공고 Vector DB 등록 실패 (AI 서비스 미실행?): {}", e.getMessage());
+        }
     }
 }

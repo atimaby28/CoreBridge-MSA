@@ -6,14 +6,22 @@ import halo.corebridge.resume.model.entity.ResumeVersion;
 import halo.corebridge.resume.repository.ResumeRepository;
 import halo.corebridge.resume.repository.ResumeVersionRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 애플리케이션 시작 시 샘플 이력서를 생성하는 초기화 클래스.
  * - user1@test.com (양승우) 계정의 이력서 1건
- * - 이미 데이터가 있으면 스킵
+ * - PostgreSQL 저장 + FastAPI /save_resume (Redis Vector DB 등록)
+ * - AI 서비스 미실행 시에도 PostgreSQL 저장은 정상 동작
  */
 @Slf4j
 @Component
@@ -21,17 +29,23 @@ public class DataInitializer implements ApplicationRunner {
 
     private final ResumeRepository resumeRepository;
     private final ResumeVersionRepository resumeVersionRepository;
+    private final RestTemplate restTemplate;
     private final Snowflake snowflake;
 
+    @Value("${ai.service.url:http://localhost:9001}")
+    private String aiServiceUrl;
+
     public DataInitializer(ResumeRepository resumeRepository,
-                           ResumeVersionRepository resumeVersionRepository) {
+                           ResumeVersionRepository resumeVersionRepository,
+                           RestTemplate restTemplate) {
         this.resumeRepository = resumeRepository;
         this.resumeVersionRepository = resumeVersionRepository;
+        this.restTemplate = restTemplate;
         this.snowflake = new Snowflake();
     }
 
     // User 서비스 DataInitializer의 USER1_ID와 동일 (Snowflake 범위)
-    private static final Long USER_ID = 11234028028076038L;
+    private static final Long USER_ID = 11234028028076033L;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -47,7 +61,7 @@ public class DataInitializer implements ApplicationRunner {
                 
                 ## 기본 정보
                 - 희망 직무: 백엔드 개발자
-                - 이메일: auqageek94@naver.com
+                - 이메일: user1@test.com
                 
                 ## 학력
                 - 전남대학교 IoT AI 융합전공 (2015 ~ 2021)
@@ -126,6 +140,45 @@ public class DataInitializer implements ApplicationRunner {
         );
         resumeVersionRepository.save(version);
 
+        log.info("이력서 PostgreSQL 저장 완료: {}", title);
+
+        // FastAPI /save_resume 호출 → Redis Vector DB에 임베딩 등록
+        registerToVectorDb(USER_ID, resumeId, content, List.of(
+                "Java", "Spring Boot", "PostgreSQL", "Kafka", "Docker",
+                "Kubernetes", "Redis", "JPA", "Vue.js", "TypeScript",
+                "FastAPI", "Python", "Jenkins"
+        ));
+
         log.info("=== 이력서 DataInitializer 완료: {} ===", title);
+    }
+
+    /**
+     * FastAPI /save_resume 호출하여 Redis Vector DB에 이력서 임베딩 등록.
+     * AI 서비스가 실행 중이 아니면 경고 로그만 남기고 스킵.
+     */
+    private void registerToVectorDb(Long userId, Long resumeId,
+                                     String resumeText, List<String> skills) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("candidate_id", String.valueOf(userId));
+            body.put("resume_text", resumeText);
+            body.put("user_id", String.valueOf(userId));
+            body.put("resume_id", String.valueOf(resumeId));
+            body.put("skills", skills);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+            String url = aiServiceUrl + "/save_resume";
+            Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
+
+            log.info("이력서 Vector DB 등록 완료: userId={}, response={}", userId, response);
+
+        } catch (Exception e) {
+            log.warn("이력서 Vector DB 등록 실패 (AI 서비스 미실행?): {}", e.getMessage());
+            log.warn("→ AI 매칭을 사용하려면 AI 서비스 실행 후 이력서를 다시 저장하세요.");
+        }
     }
 }
