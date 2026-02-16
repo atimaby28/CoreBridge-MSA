@@ -7,6 +7,23 @@
 
 ---
 
+## 🌐 Live Demo
+
+**👉 [https://corebridge.cloud/home](https://corebridge.cloud/home)**
+
+별도 설치 없이 위 링크에서 주요 기능을 바로 체험할 수 있습니다.
+MSA 13개 서비스를 단일 Spring Boot 앱으로 통합한 데모 버전입니다.
+
+| 역할 | 이메일 | 비밀번호 |
+|------|--------|----------|
+| 구직자 | user@demo.com | qwer1234 |
+| 기업 | company@demo.com | qwer1234 |
+| 관리자 | admin@demo.com | qwer1234 |
+
+> 데모 소스코드: [CoreBridge-Demo](https://github.com/atimaby28/CoreBridge-Demo)
+
+---
+
 ## 6가지 핵심 아키텍처 패턴
 
 | 패턴 | 해결한 문제 | 기술 |
@@ -140,7 +157,7 @@ cd ai
 docker-compose up -d   # FastAPI + n8n
 ```
 
-### 테스트 계정
+### 테스트 계정 (로컬)
 
 | 역할 | 이메일 | 비밀번호 | 시드 데이터 |
 |------|--------|---------|-----------|
