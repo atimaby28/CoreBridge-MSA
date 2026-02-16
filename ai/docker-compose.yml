@@ -6,7 +6,7 @@
 services:
 
   fastapi:
-    build: .
+    build: ./fastapi
     container_name: corebridge-ai
     ports:
       - "9001:9001"
