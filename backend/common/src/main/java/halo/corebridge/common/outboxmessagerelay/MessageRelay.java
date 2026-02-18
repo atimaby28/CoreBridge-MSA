@@ -45,7 +45,28 @@ public class MessageRelay {
             ).get(1, TimeUnit.SECONDS);
             outboxRepository.delete(outbox);
         } catch (Exception e) {
-            log.error("[MessageRelay.publishEvent] outbox={}", outbox, e);
+            log.error("[MessageRelay.publishEvent] failed outbox={}, retryCount={}", outbox.getId(), outbox.getRetryCount(), e);
+            outbox.incrementRetryCount();
+            if (outbox.isRetryExhausted()) {
+                log.warn("[MessageRelay.publishEvent] retry exhausted, sending to DLT. outbox={}", outbox.getId());
+                sendToDeadLetterTopic(outbox);
+                outboxRepository.delete(outbox);
+            } else {
+                outboxRepository.save(outbox);
+            }
+        }
+    }
+
+    private void sendToDeadLetterTopic(Outbox outbox) {
+        try {
+            messageRelayKafkaTemplate.send(
+                    MessageRelayConstants.DEAD_LETTER_TOPIC,
+                    String.valueOf(outbox.getShardKey()),
+                    outbox.getPayload()
+            ).get(1, TimeUnit.SECONDS);
+            log.info("[MessageRelay.sendToDeadLetterTopic] sent to DLT. outbox={}, eventType={}", outbox.getId(), outbox.getEventType());
+        } catch (Exception e) {
+            log.error("[MessageRelay.sendToDeadLetterTopic] DLT send also failed. outbox={}", outbox.getId(), e);
         }
     }
 

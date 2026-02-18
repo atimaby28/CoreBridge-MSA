@@ -31,12 +31,24 @@ public class Outbox {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false)
+    private int retryCount = 0;
+
     public static Outbox create(EventType eventType, String payload, Long shardKey) {
         Outbox outbox = new Outbox();
         outbox.eventType = eventType;
         outbox.payload = payload;
         outbox.shardKey = shardKey;
         outbox.createdAt = LocalDateTime.now();
+        outbox.retryCount = 0;
         return outbox;
+    }
+
+    public void incrementRetryCount() {
+        this.retryCount++;
+    }
+
+    public boolean isRetryExhausted() {
+        return this.retryCount >= MessageRelayConstants.MAX_RETRY_COUNT;
     }
 }
