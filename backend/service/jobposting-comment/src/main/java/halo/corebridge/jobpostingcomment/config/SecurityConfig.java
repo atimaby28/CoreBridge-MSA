@@ -35,7 +35,7 @@ public class SecurityConfig {
                         // 댓글 조회는 공개 (실제 컨트롤러 경로: /api/v1/comments)
                         .requestMatchers(HttpMethod.GET, "/api/v1/comments/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/comments").permitAll()
-                        .requestMatchers("/actuator/**", "/health/**").permitAll()
+                        .requestMatchers("/actuator/**", "/health/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(gatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)

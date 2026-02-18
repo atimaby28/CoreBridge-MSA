@@ -31,7 +31,7 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**", "/health/**").permitAll()
+                        .requestMatchers("/actuator/**", "/health/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/v1/resumes/by-user/**").permitAll()  // 내부 서비스 호출용
                         .anyRequest().authenticated()
                 )

@@ -34,7 +34,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 좋아요 수 조회는 공개
                         .requestMatchers(HttpMethod.GET, "/api/v1/jobposting-likes/jobpostings/*/count").permitAll()
-                        .requestMatchers("/actuator/**", "/health/**").permitAll()
+                        .requestMatchers("/actuator/**", "/health/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(gatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)

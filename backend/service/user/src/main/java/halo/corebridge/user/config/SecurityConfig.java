@@ -47,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/users/admin/**").hasRole("ADMIN")
 
                         // Actuator 허용
-                        .requestMatchers("/actuator/**", "/health/**").permitAll()
+                        .requestMatchers("/actuator/**", "/health/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()

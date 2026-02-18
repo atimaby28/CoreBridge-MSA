@@ -1,23 +1,25 @@
 package halo.corebridge.common.event.idempotency;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 /**
  * Outbox 이벤트 ID 기반 멱등성 체크.
  * Consumer 측에서 동일 이벤트 중복 처리를 방지합니다.
- * ProcessedEventRepository Bean이 존재하는 서비스에서만 활성화됩니다.
+ * ProcessedEventRepository가 없는 서비스에서는 멱등성 체크를 스킵합니다.
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
-@ConditionalOnBean(ProcessedEventRepository.class)
 public class IdempotencyChecker {
 
-    private final ProcessedEventRepository processedEventRepository;
+    private final Optional<ProcessedEventRepository> processedEventRepository;
+
+    public IdempotencyChecker(Optional<ProcessedEventRepository> processedEventRepository) {
+        this.processedEventRepository = processedEventRepository;
+    }
 
     /**
      * 이벤트가 이미 처리되었는지 확인합니다.
@@ -27,9 +29,11 @@ public class IdempotencyChecker {
      */
     public boolean isDuplicate(String eventId, String consumerGroup) {
         if (eventId == null || eventId.isBlank()) {
-            return false; // eventId 없는 레거시 이벤트는 중복 체크 스킵
+            return false;
         }
-        return processedEventRepository.existsByEventIdAndConsumerGroup(eventId, consumerGroup);
+        return processedEventRepository
+                .map(repo -> repo.existsByEventIdAndConsumerGroup(eventId, consumerGroup))
+                .orElse(false);
     }
 
     /**
@@ -41,10 +45,12 @@ public class IdempotencyChecker {
         if (eventId == null || eventId.isBlank()) {
             return;
         }
-        try {
-            processedEventRepository.save(ProcessedEvent.create(eventId, consumerGroup));
-        } catch (DataIntegrityViolationException e) {
-            log.warn("[IdempotencyChecker] duplicate eventId={}, consumerGroup={} (concurrent processing)", eventId, consumerGroup);
-        }
+        processedEventRepository.ifPresent(repo -> {
+            try {
+                repo.save(ProcessedEvent.create(eventId, consumerGroup));
+            } catch (DataIntegrityViolationException e) {
+                log.warn("[IdempotencyChecker] duplicate eventId={}, consumerGroup={} (concurrent processing)", eventId, consumerGroup);
+            }
+        });
     }
 }
