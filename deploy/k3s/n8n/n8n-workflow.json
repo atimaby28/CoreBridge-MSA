@@ -1,0 +1,222 @@
+{
+  "name": "CoreBridge AI Pipeline - Async",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-summary",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "webhook-summary",
+      "name": "Webhook Summary",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "ai-summary"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-skills",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "webhook-skills",
+      "name": "Webhook Skills",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 520],
+      "webhookId": "ai-skills"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-score",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "webhook-score",
+      "name": "Webhook Score",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 740],
+      "webhookId": "ai-score"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-skillgap",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "webhook-skillgap",
+      "name": "Webhook SkillGap",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 960],
+      "webhookId": "ai-skillgap"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $json.body.model || 'gemma3:4b', prompt: $json.body.prompt, stream: false }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "ollama-summary",
+      "name": "Ollama Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $json.body.model || 'gemma3:4b', prompt: $json.body.prompt, stream: false }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "ollama-skills",
+      "name": "Ollama Skills",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 520]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $json.body.model || 'gemma3:4b', prompt: $json.body.prompt, stream: false }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "ollama-score",
+      "name": "Ollama Score",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 740]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $json.body.model || 'gemma3:4b', prompt: $json.body.prompt, stream: false }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "ollama-skillgap",
+      "name": "Ollama SkillGap",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 960]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://corebridge-ai:9001/callback/summary",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ task_id: $('Webhook Summary').item.json.body.task_id, result: $json.response }) }}",
+        "options": {}
+      },
+      "id": "callback-summary",
+      "name": "Callback Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://corebridge-ai:9001/callback/skills",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ task_id: $('Webhook Skills').item.json.body.task_id, result: $json.response }) }}",
+        "options": {}
+      },
+      "id": "callback-skills",
+      "name": "Callback Skills",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 520]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://corebridge-ai:9001/callback/score",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ task_id: $('Webhook Score').item.json.body.task_id, result: $json.response }) }}",
+        "options": {}
+      },
+      "id": "callback-score",
+      "name": "Callback Score",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 740]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://corebridge-ai:9001/callback/skillgap",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ task_id: $('Webhook SkillGap').item.json.body.task_id, result: $json.response }) }}",
+        "options": {}
+      },
+      "id": "callback-skillgap",
+      "name": "Callback SkillGap",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 960]
+    }
+  ],
+  "connections": {
+    "Webhook Summary": {
+      "main": [[{ "node": "Ollama Summary", "type": "main", "index": 0 }]]
+    },
+    "Webhook Skills": {
+      "main": [[{ "node": "Ollama Skills", "type": "main", "index": 0 }]]
+    },
+    "Webhook Score": {
+      "main": [[{ "node": "Ollama Score", "type": "main", "index": 0 }]]
+    },
+    "Webhook SkillGap": {
+      "main": [[{ "node": "Ollama SkillGap", "type": "main", "index": 0 }]]
+    },
+    "Ollama Summary": {
+      "main": [[{ "node": "Callback Summary", "type": "main", "index": 0 }]]
+    },
+    "Ollama Skills": {
+      "main": [[{ "node": "Callback Skills", "type": "main", "index": 0 }]]
+    },
+    "Ollama Score": {
+      "main": [[{ "node": "Callback Score", "type": "main", "index": 0 }]]
+    },
+    "Ollama SkillGap": {
+      "main": [[{ "node": "Callback SkillGap", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
