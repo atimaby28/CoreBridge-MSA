@@ -222,7 +222,7 @@ CoreBridge-MSA/
 | [Outbox 설계문서](docs/design/) | 왜 Outbox을 선택하였을까? (CDC/Dual Write 비교) |
 | [Circuit Breaker 설계문서](docs/design/) | 왜 Resilience4j를 적용하였을까? (파라미터 튜닝 근거) |
 | [CQRS 설계문서](docs/design/) | 왜 ConcurrentHashMap인가? (Redis 대비) |
-| [AI Pipeline 설계문서](docs/design/) | 왜 n8n 비동기인를 사용했는가? (Spring @Async 대비) |
+| [AI Pipeline 설계문서](docs/design/) | 왜 n8n 비동기를 사용했는가? (Spring @Async 대비) |
 | [API Gateway 설계문서](docs/design/) | 왜 Cookie JWT인가? (XSS vs CSRF) |
 | [K8s/CI/CD 설계문서](docs/design/) | 왜 K3s + Rolling Update인가? |
 
