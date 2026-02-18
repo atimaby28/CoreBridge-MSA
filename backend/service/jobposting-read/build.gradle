@@ -8,13 +8,11 @@ dependencies {
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
+    // JPA (멱등성 체크용 processed_event 테이블)
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
     // Security
     implementation 'org.springframework.boot:spring-boot-starter-security'
-
-    // JWT
-//    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-//    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
-//    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
     // Validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -24,9 +22,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-aop'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+    // PostgreSQL
+    runtimeOnly 'org.postgresql:postgresql'
+
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 bootJar {

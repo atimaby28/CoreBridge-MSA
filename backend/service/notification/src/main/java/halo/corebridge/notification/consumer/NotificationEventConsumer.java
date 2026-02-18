@@ -1,11 +1,11 @@
 package halo.corebridge.notification.consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import halo.corebridge.common.dataserializer.DataSerializer;
 import halo.corebridge.common.event.Event;
 import halo.corebridge.common.event.EventPayload;
 import halo.corebridge.common.event.EventType;
 import halo.corebridge.common.event.NotificationCreatedEventPayload;
+import halo.corebridge.common.event.idempotency.IdempotencyChecker;
 import halo.corebridge.notification.model.dto.NotificationDto;
 import halo.corebridge.notification.model.enums.NotificationType;
 import halo.corebridge.notification.service.NotificationService;
@@ -25,7 +25,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class NotificationEventConsumer {
 
+    private static final String CONSUMER_GROUP = "notification-group";
     private final NotificationService notificationService;
+    private final IdempotencyChecker idempotencyChecker;
 
     @KafkaListener(
             topics = "corebridge-notification",
@@ -37,6 +39,12 @@ public class NotificationEventConsumer {
             Event<EventPayload> event = DataSerializer.deserialize(message, Event.class);
             if (event == null || event.getType() != EventType.NOTIFICATION_CREATED) {
                 log.warn("[NotificationEventConsumer] 지원하지 않는 이벤트: {}", event != null ? event.getType() : "null");
+                return;
+            }
+
+            // 멱등성 체크: 이미 처리된 이벤트는 스킵
+            if (idempotencyChecker.isDuplicate(event.getEventId(), CONSUMER_GROUP)) {
+                log.info("[NotificationEventConsumer] duplicate event skipped. eventId={}", event.getEventId());
                 return;
             }
 
@@ -67,6 +75,8 @@ public class NotificationEventConsumer {
             if (response.isSuccess()) {
                 log.info("[NotificationEventConsumer] 알림 생성 완료: userId={}, type={}",
                         payload.getUserId(), payload.getType());
+                // 처리 완료 기록
+                idempotencyChecker.markAsProcessed(event.getEventId(), CONSUMER_GROUP);
             } else {
                 log.warn("[NotificationEventConsumer] 알림 생성 실패: {}", response.getMessage());
             }

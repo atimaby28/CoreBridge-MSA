@@ -5,6 +5,7 @@ import halo.corebridge.common.event.Event;
 import halo.corebridge.common.event.EventHandler;
 import halo.corebridge.common.event.EventPayload;
 import halo.corebridge.common.event.EventType;
+import halo.corebridge.common.event.idempotency.IdempotencyChecker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -28,7 +29,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class JobpostingHotEventConsumer {
 
+    private static final String CONSUMER_GROUP = "jobposting-hot-group";
     private final List<EventHandler<?>> eventHandlers;
+    private final IdempotencyChecker idempotencyChecker;
 
     @KafkaListener(
             topics = {"corebridge-jobposting", "corebridge-comment", "corebridge-like", "corebridge-view"},
@@ -44,16 +47,25 @@ public class JobpostingHotEventConsumer {
                 return;
             }
 
+            // 멱등성 체크: 이미 처리된 이벤트는 스킵
+            if (idempotencyChecker.isDuplicate(event.getEventId(), CONSUMER_GROUP)) {
+                log.info("[JobpostingHotEventConsumer] duplicate event skipped. eventId={}", event.getEventId());
+                return;
+            }
+
             EventType eventType = event.getType();
             EventPayload payload = DataSerializer.deserialize(
                     event.getPayload(), eventType.getPayloadClass());
-            Event<EventPayload> typedEvent = Event.of(eventType, payload);
+            Event<EventPayload> typedEvent = Event.of(event.getEventId(), eventType, payload);
 
             for (EventHandler handler : eventHandlers) {
                 if (handler.supports(eventType)) {
                     handler.handle(typedEvent);
                 }
             }
+
+            // 처리 완료 기록
+            idempotencyChecker.markAsProcessed(event.getEventId(), CONSUMER_GROUP);
         } catch (Exception e) {
             log.error("[JobpostingHotEventConsumer] error processing message", e);
         }
