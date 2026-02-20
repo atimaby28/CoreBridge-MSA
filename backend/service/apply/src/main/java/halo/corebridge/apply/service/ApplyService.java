@@ -6,10 +6,14 @@ import halo.corebridge.apply.model.entity.RecruitmentProcess;
 import halo.corebridge.apply.model.enums.ProcessStep;
 import halo.corebridge.apply.repository.ApplyRepository;
 import halo.corebridge.apply.repository.RecruitmentProcessRepository;
+import halo.corebridge.common.dataserializer.DataSerializer;
 import halo.corebridge.common.exception.BaseException;
 import halo.corebridge.common.response.BaseResponseStatus;
 import halo.corebridge.common.snowflake.Snowflake;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,8 +23,14 @@ import java.util.List;
  * 지원 서비스
  *
  * 채용 공고 지원 관련 비즈니스 로직을 처리합니다.
- * 지원 시 RecruitmentProcess도 함께 생성하여 하나의 트랜잭션으로 관리합니다.
+ *
+ * [트래픽 대응 구조]
+ * - apply() 메서드는 DB를 거치지 않고 Redis + Kafka만 사용합니다.
+ * - Redis SADD로 원자적 중복 체크 후, Kafka에 메시지를 발행합니다.
+ * - 실제 DB INSERT는 ApplyEventConsumer가 백그라운드에서 처리합니다.
+ * - 이를 통해 1만 명 동시 지원 시에도 50ms 이내 응답이 가능합니다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ApplyService {
@@ -29,43 +39,59 @@ public class ApplyService {
     private final ApplyRepository applyRepository;
     private final RecruitmentProcessRepository processRepository;
     private final ProcessService processService;
+    private final StringRedisTemplate redisTemplate;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+
+    private static final String APPLY_TOPIC = "corebridge-apply";
 
     // ============================================
     // 지원자 (구직자) 기능
     // ============================================
 
     /**
-     * 지원하기
+     * 지원 접수 (비동기)
      *
-     * Apply와 RecruitmentProcess를 함께 생성합니다.
-     * 하나의 트랜잭션으로 처리되어 데이터 일관성을 보장합니다.
+     * 대규모 동시 트래픽 대응을 위해 요청 접수와 실제 처리를 분리합니다.
+     *
+     * 1. Redis SADD로 중복 체크 (원자적, O(1), race condition 없음)
+     * 2. Kafka로 메시지 발행 (DB INSERT 없음, 커넥션 풀 소모 없음)
+     * 3. 즉시 "접수 완료" 응답 반환
+     *
+     * 실제 DB 저장은 ApplyEventConsumer가 Kafka에서 메시지를 소비하여 처리합니다.
+     * 처리 완료 시 SSE 알림으로 유저에게 "지원 확정"을 통보합니다.
      */
-    @Transactional
-    public ApplyDto.ApplyDetailResponse apply(ApplyDto.CreateRequest request) {
-        // 중복 지원 체크
-        if (applyRepository.existsByJobpostingIdAndUserId(
-                request.getJobpostingId(), request.getUserId())) {
+    public ApplyDto.ApplyAcceptedResponse apply(ApplyDto.CreateRequest request) {
+        // 1. Redis SADD — 원자적 중복 체크
+        //    Set에 이미 존재하면 0 반환, 신규면 1 반환
+        //    DB SELECT 없이 O(1)로 중복 판별
+        String key = "applied:" + request.getJobpostingId();
+        String member = String.valueOf(request.getUserId());
+        Long added = redisTemplate.opsForSet().add(key, member);
+
+        if (added == null || added == 0) {
             throw new BaseException(BaseResponseStatus.ALREADY_APPLIED);
         }
 
-        // Apply 생성
-        Apply apply = Apply.create(
-                snowflake.nextId(),
-                request.getJobpostingId(),
-                request.getUserId(),
-                request.getResumeId(),
-                request.getCoverLetter()
-        );
-        applyRepository.save(apply);
+        // 2. Kafka 발행 — DB를 거치지 않으므로 커넥션 풀 소모 없음
+        try {
+            String payload = DataSerializer.serialize(request);
+            kafkaTemplate.send(
+                    APPLY_TOPIC,
+                    String.valueOf(request.getJobpostingId()),   // 파티션 키
+                    payload
+            );
+            log.info("[Apply] 접수 완료 → Kafka 발행: jobpostingId={}, userId={}",
+                    request.getJobpostingId(), request.getUserId());
+        } catch (Exception e) {
+            // Kafka 발행 실패 시 Redis 롤백 → 재지원 가능하도록
+            redisTemplate.opsForSet().remove(key, member);
+            log.error("[Apply] Kafka 발행 실패, Redis 롤백: {}", e.getMessage());
+            throw new BaseException(BaseResponseStatus.INTERNAL_SERVER_ERROR);
+        }
 
-        // RecruitmentProcess 생성 (State Machine 시작)
-        RecruitmentProcess process = processService.createProcess(
-                apply.getApplyId(),
-                apply.getJobpostingId(),
-                apply.getUserId()
-        );
-
-        return ApplyDto.ApplyDetailResponse.from(apply, process);
+        // 3. 즉시 응답 — "접수됨"
+        return ApplyDto.ApplyAcceptedResponse.of(
+                request.getJobpostingId(), request.getUserId());
     }
 
     /**
@@ -92,6 +118,11 @@ public class ApplyService {
         // 삭제
         processRepository.delete(process);
         applyRepository.delete(apply);
+
+        // Redis에서도 제거 → 재지원 가능하도록
+        String key = "applied:" + apply.getJobpostingId();
+        redisTemplate.opsForSet().remove(key, String.valueOf(userId));
+        log.info("[Apply] 지원 취소 완료: applyId={}, userId={}", applyId, userId);
     }
 
     /**

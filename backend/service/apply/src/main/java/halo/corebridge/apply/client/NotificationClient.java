@@ -66,6 +66,7 @@ public class NotificationClient {
      */
     private String mapStepToNotificationType(ProcessStep step) {
         return switch (step) {
+            case APPLIED -> "APPLICATION_CONFIRMED";
             case DOCUMENT_PASS -> "DOCUMENT_PASS";
             case DOCUMENT_FAIL -> "DOCUMENT_FAIL";
             case CODING_TEST -> "CODING_TEST_SCHEDULED";
@@ -76,7 +77,7 @@ public class NotificationClient {
             case INTERVIEW_1_FAIL, INTERVIEW_2_FAIL -> "INTERVIEW_FAIL";
             case FINAL_PASS -> "FINAL_PASS";
             case FINAL_FAIL -> "FINAL_FAIL";
-            default -> null; // APPLIED, DOCUMENT_REVIEW 등은 알림 안 함
+            default -> null; // DOCUMENT_REVIEW 등은 알림 안 함
         };
     }
 
@@ -85,6 +86,7 @@ public class NotificationClient {
      */
     private String generateTitle(ProcessStep step) {
         return switch (step) {
+            case APPLIED -> "지원 확정";
             case DOCUMENT_PASS -> "서류 전형 합격";
             case DOCUMENT_FAIL -> "서류 전형 결과 안내";
             case CODING_TEST -> "코딩 테스트 안내";
@@ -106,6 +108,7 @@ public class NotificationClient {
      */
     private String generateMessage(ProcessStep step) {
         return switch (step) {
+            case APPLIED -> "지원이 정상적으로 접수되었습니다. 서류 검토 후 결과를 안내드리겠습니다.";
             case DOCUMENT_PASS -> "서류 전형에 합격하셨습니다. 다음 전형 안내를 확인해주세요.";
             case DOCUMENT_FAIL -> "서류 전형 결과를 확인해주세요.";
             case CODING_TEST -> "코딩 테스트 일정이 안내되었습니다. 상세 내용을 확인해주세요.";
