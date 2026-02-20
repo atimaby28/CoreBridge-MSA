@@ -30,10 +30,14 @@ public class ApplyController {
     // ============================================
 
     /**
-     * 지원하기
+     * 지원하기 (비동기)
+     *
+     * Redis 중복 체크 + Kafka 발행 후 즉시 응답합니다.
+     * 실제 DB 저장은 백그라운드 Consumer가 처리하며,
+     * 완료 시 SSE 알림으로 유저에게 통보합니다.
      */
     @PostMapping
-    public BaseResponse<ApplyDto.ApplyDetailResponse> apply(
+    public BaseResponse<ApplyDto.ApplyAcceptedResponse> apply(
             @RequestBody ApplyDto.CreateRequest request
     ) {
         return BaseResponse.success(applyService.apply(request));

@@ -132,4 +132,28 @@ public class ApplyDto {
                     .build();
         }
     }
+
+    /**
+     * 지원 접수 응답 (비동기)
+     *
+     * 대규모 트래픽 대응을 위해 실제 DB 저장 전, Kafka 발행 완료 시점의 즉시 응답입니다.
+     * 실제 지원 확정은 ApplyEventConsumer가 처리 후 SSE 알림으로 통보합니다.
+     */
+    @Getter
+    @Builder
+    public static class ApplyAcceptedResponse {
+        private Long jobpostingId;
+        private Long userId;
+        private String status;
+        private String message;
+
+        public static ApplyAcceptedResponse of(Long jobpostingId, Long userId) {
+            return ApplyAcceptedResponse.builder()
+                    .jobpostingId(jobpostingId)
+                    .userId(userId)
+                    .status("ACCEPTED")
+                    .message("지원이 접수되었습니다. 처리 완료 시 알림으로 안내드립니다.")
+                    .build();
+        }
+    }
 }

@@ -5,6 +5,11 @@ spring:
   application:
     name: gateway
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   cloud:
     gateway:
       # 라우팅 설정 (순서 중요: 더 구체적인 경로가 먼저!)
@@ -51,11 +56,18 @@ spring:
           predicates:
             - Path=/api/v1/jobpostings/**
 
-        # Apply Service (8009)
+        # Apply Service (8009) — Rate Limiter 적용
         - id: apply-service
           uri: http://localhost:8009
           predicates:
             - Path=/api/v1/applies/**,/api/v1/processes/**,/api/v1/ai-matching/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 100
+                redis-rate-limiter.burstCapacity: 200
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@applyRateLimiterKeyResolver}"
 
         # Schedule Service (8011)
         - id: schedule-service
