@@ -1,0 +1,109 @@
+$ k6 run --env JOBPOSTING_ID=14148375269359616 k6-cqrs-all.js
+
+         /\      Grafana   /‾‾/
+    /\  /  \     |\  __   /  /
+   /  \/    \    | |/ /  /   ‾‾\
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/
+
+     execution: local
+        script: k6-cqrs-all.js
+        output: -
+
+     scenarios: (100.00%) 6 scenarios, 25 max VUs, 1m58s max duration (incl. graceful stop):
+              * warmup: 1 iterations shared among 1 VUs (maxDuration: 10s, exec: warmupCache, gracefulStop: 30s)
+              * cache_hit_single: 20 iterations for each of 1 VUs (maxDuration: 20s, exec: cacheHitTest, startTime: 5s, gracefulStop: 30s)
+              * cache_hit_concurrent: Up to 20 looping VUs for 33s over 5 stages (gracefulRampDown: 30s, exec: cacheHitConcurrent, startTime: 15s, gracefulStop: 30s)
+              * pause_notice: 1 iterations shared among 1 VUs (maxDuration: 15s, exec: pauseForServiceStop, startTime: 48s, gracefulStop: 30s)
+              * service_down_test: 10 iterations for each of 3 VUs (maxDuration: 30s, exec: serviceDownTest, startTime: 58s, gracefulStop: 30s)
+              * cb_monitor: 3 iterations for each of 1 VUs (maxDuration: 15s, exec: checkCircuitBreaker, startTime: 1m10s, gracefulStop: 30s)
+
+INFO[0000] ⏳ 캐시 워밍업 대기 (3초)...                           source=console
+INFO[0003] ✅ Phase 1: 캐시 워밍업 완료                          source=console
+INFO[0048]                                               source=console
+INFO[0048] ╔══════════════════════════════════════════════╗  source=console
+INFO[0048] ║  ⚠️  지금 view/like/comment 서비스 Stop!     ║   source=console
+INFO[0048] ║  IntelliJ에서 3개 서비스를 중지하세요        ║          source=console
+INFO[0048] ║  10초 후 장애 테스트가 시작됩니다...         ║           source=console
+INFO[0048] ╚══════════════════════════════════════════════╝  source=console
+INFO[0048]                                               source=console
+INFO[0058] ▶ Phase 4: 서비스 장애 테스트 시작!                     source=console
+INFO[0070]   [CB] viewService: OPEN (failed: 6, notPermitted: 24)  source=console
+INFO[0070]   [CB] likeService: OPEN (failed: 5, notPermitted: 13)  source=console
+INFO[0070]   [CB] jobpostingService: CLOSED (failed: 0, notPermitted: 0)  source=console
+INFO[0070]   [CB] commentService: CLOSED (failed: 0, notPermitted: 0)  source=console
+INFO[0070]   [CB] userService: CLOSED (failed: 0, notPermitted: 0)  source=console
+INFO[0072]   [CB] viewService: OPEN (failed: 6, notPermitted: 24)  source=console
+INFO[0072]   [CB] likeService: OPEN (failed: 5, notPermitted: 13)  source=console
+INFO[0072]   [CB] jobpostingService: CLOSED (failed: 0, notPermitted: 0)  source=console
+INFO[0072]   [CB] commentService: CLOSED (failed: 0, notPermitted: 0)  source=console
+INFO[0072]   [CB] userService: CLOSED (failed: 0, notPermitted: 0)  source=console
+INFO[0074]   [CB] viewService: OPEN (failed: 6, notPermitted: 24)  source=console
+INFO[0074]   [CB] likeService: OPEN (failed: 5, notPermitted: 13)  source=console
+INFO[0074]   [CB] jobpostingService: CLOSED (failed: 0, notPermitted: 0)  source=console
+INFO[0074]   [CB] commentService: CLOSED (failed: 0, notPermitted: 0)  source=console
+INFO[0074]   [CB] userService: CLOSED (failed: 0, notPermitted: 0)  source=console
+INFO[0076]
+╔══════════════════════════════════════════════════════════════════════╗
+║            CoreBridge CQRS - 캐시 vs 서비스 장애 성능 비교         ║
+╠══════════════════════════════════════════════════════════════════════╣
+║                                                                      ║
+║  ┌──────────────────────┬──────────┬──────────┬────────┬──────────┐ ║
+║  │ 시나리오             │   Avg    │   P95    │ 성공률 │ CB 상태  │ ║
+║  ├──────────────────────┼──────────┼──────────┼────────┼──────────┤ ║
+║  │ 캐시 히트 (단일)     │   76.3ms │   90.1ms │  100%  │ CLOSED   │ ║
+║  │ 캐시 히트 (VU 5→20)  │   43.1ms │   87.4ms │  100%  │ CLOSED   │ ║
+║  │ 서비스 3개 장애+캐시 │   22.9ms │   32.4ms │ 100.0% │ OPEN     │ ║
+║  └──────────────────────┴──────────┴──────────┴────────┴──────────┘ ║
+║                                                                      ║
+║  장애 시 CB 상태:                                                    ║
+║    viewService: OPEN  │  likeService: OPEN  │  commentService: OPEN  ║
+║    jobpostingService: CLOSED (정상) │ userService: CLOSED (정상)     ║
+║                                                                      ║
+║  핵심 성과:                                                          ║
+║    ✅ 서비스 3개 장애에도 캐시로 정상 응답 유지                      ║
+║    ✅ 장애 시 HTTP 미호출 → 응답 시간 오히려 감소                    ║
+║    ✅ CB 자동 OPEN 전환으로 장애 전파 차단                           ║
+║    ✅ VU 20 동시 요청에서도 안정적 응답                              ║
+║                                                                      ║
+║  아키텍처:                                                           ║
+║    [Kafka] → Consumer → ReadCache → 즉시 반환 (HTTP 0회)            ║
+║                                   → 캐시 미스 → HTTP Fallback (3회) ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝  source=console
+
+╔══════════════════════════════════════════════════════════════════════╗
+║            CoreBridge CQRS - 캐시 vs 서비스 장애 성능 비교         ║
+╠══════════════════════════════════════════════════════════════════════╣
+║                                                                      ║
+║  ┌──────────────────────┬──────────┬──────────┬────────┬──────────┐ ║
+║  │ 시나리오             │   Avg    │   P95    │ 성공률 │ CB 상태  │ ║
+║  ├──────────────────────┼──────────┼──────────┼────────┼──────────┤ ║
+║  │ 캐시 히트 (단일)     │   76.3ms │   90.1ms │  100%  │ CLOSED   │ ║
+║  │ 캐시 히트 (VU 5→20)  │   43.1ms │   87.4ms │  100%  │ CLOSED   │ ║
+║  │ 서비스 3개 장애+캐시 │   22.9ms │   32.4ms │ 100.0% │ OPEN     │ ║
+║  └──────────────────────┴──────────┴──────────┴────────┴──────────┘ ║
+║                                                                      ║
+║  장애 시 CB 상태:                                                    ║
+║    viewService: OPEN  │  likeService: OPEN  │  commentService: OPEN  ║
+║    jobpostingService: CLOSED (정상) │ userService: CLOSED (정상)     ║
+║                                                                      ║
+║  핵심 성과:                                                          ║
+║    ✅ 서비스 3개 장애에도 캐시로 정상 응답 유지                      ║
+║    ✅ 장애 시 HTTP 미호출 → 응답 시간 오히려 감소                    ║
+║    ✅ CB 자동 OPEN 전환으로 장애 전파 차단                           ║
+║    ✅ VU 20 동시 요청에서도 안정적 응답                              ║
+║                                                                      ║
+║  아키텍처:                                                           ║
+║    [Kafka] → Consumer → ReadCache → 즉시 반환 (HTTP 0회)            ║
+║                                   → 캐시 미스 → HTTP Fallback (3회) ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+running (1m16.0s), 00/25 VUs, 1298 complete and 0 interrupted iterations
+warmup               ✓ [=========] 1 VUs      03.9s/10s  1/1 shared iters
+cache_hit_single     ✓ [=========] 1 VUs      03.5s/20s  20/20 iters, 20 per VU
+cache_hit_concurrent ✓ [=========] 00/20 VUs  33s
+pause_notice         ✓ [=========] 1 VUs      10.0s/15s  1/1 shared iters
+service_down_test    ✓ [=========] 3 VUs      03.2s/30s  30/30 iters, 10 per VU
+cb_monitor           ✓ [=========] 1 VUs      06.0s/15s  3/3 iters, 3 per VU

@@ -67,6 +67,7 @@ bin/
 
 # macOS
 .DS_Store
+__MACOSX/
 
 # Node
 node_modules/

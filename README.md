@@ -1,430 +1,300 @@
-# CoreBridge - 실시간 채용관리 시스템
+# CoreBridge-MSA
 
-> Spring Boot MSA + Vue 3 + AI 기반 채용 프로세스 관리 플랫폼
+> MSA 기반 채용 관리 플랫폼 — 13개 마이크로서비스 + 6가지 핵심 아키텍처 패턴
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![Vue](https://img.shields.io/badge/Vue-3-4FC08D.svg)](https://vuejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0-009688.svg)](https://fastapi.tiangolo.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-336791.svg)](https://www.postgresql.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
+채용 프로세스의 공고 등록부터 지원, 면접 일정 관리, AI 매칭까지 전 과정을 관리하는 플랫폼입니다.
+단순 CRUD가 아닌 **실무에서 마주치는 분산 시스템 문제를 직접 해결**하는 데 초점을 맞췄습니다.
 
 ---
 
-## 🎯 프로젝트 소개
+## 🌐 Live Demo
 
-**CoreBridge**는 채용 프로세스를 **State Machine** 패턴으로 관리하고, **AI 기반 이력서 분석**을 통해 채용 효율을 높이는 MSA 기반 시스템입니다.
+**👉 [https://corebridge.cloud/home](https://corebridge.cloud/home)**
 
-- 🏢 **기업**: 칸반보드로 지원자를 직관적으로 관리, AI 매칭 점수로 우선순위 파악
-- 👤 **구직자**: 실시간으로 채용 진행 상태 확인
-- 🤖 **AI**: 이력서 자동 분석, 스킬 추출, JD 매칭 점수 산출
-- 🔒 **관리자**: 모든 활동에 대한 감사 로그 추적
-
-### 주요 특징
-
-- **State Machine 패턴**: 복잡한 채용 단계를 안전하게 관리 (잘못된 상태 전이 원천 차단)
-- **AI 파이프라인**: n8n + FastAPI + Ollama LLM 기반 8단계 자동화 파이프라인
-- **MSA 아키텍처**: 13개 마이크로서비스로 구성된 확장 가능한 구조
-- **실시간 알림**: 상태 변경 시 즉시 알림 (SSE + Redis Pub/Sub)
-- **감사 로그**: 모든 API 호출 자동 기록 (누가, 언제, 무엇을)
-- **모니터링**: Prometheus + Grafana 기반 실시간 성능 모니터링
-
----
-
-## 🛠 기술 스택
-
-### Backend
-| 기술 | 버전 | 설명 |
-|------|------|------|
-| Java | 21 | LTS 버전 |
-| Spring Boot | 3.x | 메인 프레임워크 |
-| Spring Data JPA | - | ORM |
-| Spring Batch | - | 배치 처리 (알림 재전송, 정리) |
-| PostgreSQL | 18+ | 메인 데이터베이스 |
-| Redis | 7+ | Pub/Sub, 캐싱, Vector DB |
-| Gradle | 8.x | 빌드 도구 |
-
-### AI/ML
-| 기술 | 설명 |
-|------|------|
-| FastAPI | AI 분석 서비스 |
-| Ollama | 로컬 LLM (llama3.2) |
-| nomic-embed-text | 문장 임베딩 |
-| Redis Vector Search | 코사인 유사도 기반 JD 매칭 |
-| n8n | 워크플로우 자동화 |
-
-### Frontend
-| 기술 | 버전 | 설명 |
-|------|------|------|
-| Vue | 3.x | Composition API |
-| TypeScript | 5.x | 타입 안정성 |
-| Pinia | 2.x | 상태 관리 |
-| Tailwind CSS | 3.x | 스타일링 |
-| Vite | 5.x | 빌드 도구 |
-
-### Infra & DevOps
-| 기술 | 설명 |
-|------|------|
-| Docker | 컨테이너화 |
-| Kubernetes | 오케스트레이션 |
-| Jenkins | CI/CD (Blue-Green 배포) |
-| Prometheus | 메트릭 수집 |
-| Grafana | 모니터링 대시보드 |
-
----
-
-## 📐 시스템 아키텍처
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Frontend (Vue 3 + TypeScript)                        │
-│                         localhost:5173                                  │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     Backend Microservices (Spring Boot)                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│  8001  │  8002  │  8003  │  8004  │  8005  │  8006  │  8007             │
-│  user  │  job   │  app   │ process│schedule│ notif  │ resume           │
-├────────┼────────┼────────┼────────┼────────┼────────┼──────────────────┤
-│  8008  │  8009  │  8010  │  8011  │  8012  │  8013  │                  │
-│  like  │  view  │  read  │  hot   │ comment│ audit  │                  │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-              ┌─────────────────────┼─────────────────────┐
-              ▼                     ▼                     ▼
-┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-│    PostgreSQL    │    │   Redis Stack    │    │   AI Pipeline    │
-│   (Main DB)      │    │ (Pub/Sub, Vector)│    │   (FastAPI)      │
-└──────────────────┘    └──────────────────┘    └──────────────────┘
-                                                          │
-                                    ┌─────────────────────┼─────────────────────┐
-                                    ▼                     ▼                     ▼
-                          ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-                          │     n8n      │      │    Ollama    │      │    Redis     │
-                          │  Workflow    │      │  Local LLM   │      │  Vector DB   │
-                          └──────────────┘      └──────────────┘      └──────────────┘
-```
-
-### AI 파이프라인 흐름 (8단계 자동화)
-
-```
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-│ Webhook │───▶│ FastAPI │───▶│ Ollama  │───▶│ Embed   │
-│ (n8n)   │    │ 전처리  │    │ 요약    │    │ 벡터화  │
-└─────────┘    └─────────┘    └─────────┘    └─────────┘
-                                                  │
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌───▼─────┐
-│ Spring  │◀───│ Scoring │◀───│ 스킬    │◀───│ Redis   │
-│ Boot    │    │ LLM     │    │ 추출    │    │ Vector  │
-└─────────┘    └─────────┘    └─────────┘    └─────────┘
-```
-
-1. **Webhook 수신**: n8n이 이력서 제출 이벤트 수신
-2. **전처리**: FastAPI에서 이력서 텍스트 추출
-3. **요약**: Ollama LLM으로 이력서 요약 생성
-4. **벡터화**: nomic-embed-text로 문장 임베딩
-5. **JD 매칭**: Redis Vector Search로 유사 공고 검색
-6. **스킬 추출**: LLM으로 기술 스택 자동 추출
-7. **스코어링**: AI가 종합 점수 산출
-8. **결과 전송**: Spring Boot API로 결과 전달
-
-### 마이크로서비스 구성
-
-| 포트 | 서비스 | 설명 |
-|------|--------|------|
-| 8001 | **user** | 사용자 관리, 인증 (USER/COMPANY/ADMIN) |
-| 8002 | **jobposting** | 채용공고 CRUD |
-| 8003 | **application** | 지원서 관리 |
-| 8004 | **process** | ⭐ 채용 프로세스 상태관리 (State Machine) |
-| 8005 | **schedule** | 면접 일정 관리 |
-| 8006 | **notification** | 실시간 알림 |
-| 8007 | **resume** | 이력서 관리 |
-| 8008 | **jobposting-like** | 공고 좋아요/찜 |
-| 8009 | **jobposting-view** | 조회수 카운팅 |
-| 8010 | **jobposting-read** | 공고 상세 조회 (Aggregator) |
-| 8011 | **jobposting-hot** | 인기 공고 집계 |
-| 8012 | **jobposting-comment** | 댓글/답글 |
-| 8013 | **admin-audit** | 감사 로그 |
-
----
-
-## ⭐ 핵심 기능
-
-### 1. Process 기반 채용 상태관리 (State Machine)
-
-```
-APPLIED (지원완료)
-    ↓
-DOCUMENT_REVIEW (서류검토중)
-    ↓
-┌───────────────┬───────────────┐
-↓               ↓               
-DOCUMENT_PASS   DOCUMENT_FAIL (종료)
-    ↓               
-    ├─── CODING_TEST ─── CODING_PASS/FAIL
-    │
-    └─── INTERVIEW_1 ─── INTERVIEW_1_PASS/FAIL
-                              ↓
-                         INTERVIEW_2 ─── INTERVIEW_2_PASS/FAIL
-                              ↓
-                         FINAL_REVIEW
-                              ↓
-                    FINAL_PASS / FINAL_FAIL
-```
-
-**특징:**
-- 허용된 상태 전이만 가능 (Enum 기반 규칙 정의)
-- 모든 상태 변경 이력 자동 추적
-- 잘못된 전이 시 예외 발생
-
-### 2. AI 이력서 분석 & JD 매칭
-
-| 기능 | 기술 | 설명 |
-|------|------|------|
-| 이력서 요약 | Ollama LLM | 긴 이력서를 핵심 내용으로 요약 |
-| 스킬 추출 | Ollama LLM | 기술 스택 자동 추출 (Java, Spring 등) |
-| JD 매칭 | Redis Vector | 코사인 유사도 기반 적합 공고 추천 |
-| 종합 스코어 | AI Scoring | 100점 만점 매칭 점수 산출 |
-
-**성능 메트릭 (Grafana 모니터링):**
-- Redis 벡터 검색: ~30ms (매우 빠름)
-- 임베딩: ~2,000ms
-- LLM 작업: ~80,000ms (병목 구간 → 비동기 처리로 개선)
-
-### 3. 칸반보드 지원자 관리
-
-| 기능 | 설명 |
-|------|------|
-| 드래그앤드롭 | 지원자 카드를 끌어서 상태 변경 |
-| 일괄 처리 | 체크박스로 여러 지원자 동시 합격/불합격 |
-| AI 점수 표시 | 매칭 점수 기반 우선순위 파악 |
-| 필터링 | 공고별, 상태별, 점수별 필터 |
-
-### 4. 실시간 알림 시스템
-
-```
-[상태 변경] → [Redis Pub/Sub] → [SSE] → [브라우저 알림]
-```
-
-- 상태 변경 시 즉시 알림 발송
-- 면접 일정 리마인더
-- Spring Batch로 실패 알림 재전송 (5분마다)
-
-### 5. 감사 로그 (Audit Log)
-
-모든 API 요청 자동 기록:
-- **누가**: X-User-Id, X-User-Email
-- **언제**: timestamp
-- **무엇을**: HTTP Method, URI, Request/Response Body
-- **결과**: HTTP Status Code
-
----
-
-## 🚀 실행 방법
-
-### 사전 요구사항
-
-- Java 21+
-- Node.js 18+
-- PostgreSQL 18+
-- Docker (선택)
-
-### 1. Docker Compose (권장)
-
-```bash
-# 클론
-git clone https://github.com/yourusername/CoreBridge.git
-cd CoreBridge
-
-# 실행
-docker-compose up -d
-
-# 접속
-# Frontend: http://localhost:5173
-# Backend:  http://localhost:8001~8013
-```
-
-### 2. 로컬 실행
-
-```bash
-# 데이터베이스 설정
-psql -U postgres -f scripts/init-db.sql
-
-# Backend 실행 (각 서비스)
-cd backend
-./gradlew :service:user:bootRun
-./gradlew :service:jobposting:bootRun
-# ... (또는 start-all.sh 스크립트 사용)
-
-# Frontend 실행
-cd frontend
-npm install
-npm run dev
-```
-
-### 3. 테스트 계정
+별도 설치 없이 위 링크에서 주요 기능을 바로 체험할 수 있습니다.
+MSA 13개 서비스를 단일 Spring Boot 앱으로 통합한 데모 버전입니다.
 
 | 역할 | 이메일 | 비밀번호 |
 |------|--------|----------|
-| 구직자 | user@test.com | password |
-| 기업 | company@test.com | password |
-| 관리자 | admin@test.com | password |
+| 구직자 | user@demo.com | qwer1234 |
+| 기업 | company@demo.com | qwer1234 |
+| 관리자 | admin@demo.com | qwer1234 |
+
+> 데모 소스코드: [CoreBridge-Demo](https://github.com/atimaby28/CoreBridge-Demo)
+
+---
+
+## Architecture
+
+### MSA
+
+![Dashboard](docs/screenshots/architecture_MSA.png)
+
+<br />
+
+### AI
+
+![Dashboard](docs/screenshots/architecture_AI.png)
+
+---
+
+## 6가지 핵심 아키텍처 패턴
+
+| 패턴 | 해결한 문제 | 기술 |
+|------|-----------|------|
+| **Outbox Pattern** | 서비스 간 데이터 일관성 (Dual Write 방지) | Outbox + Kafka (6 Topic, 5 Outbox Producer) |
+| **Circuit Breaker** | 장애 전파 차단 (Cascading Failure) | Resilience4j (5개 독립 인스턴스) |
+| **CQRS + Batch** | 읽기 성능 최적화 | ConcurrentHashMap 캐시 + Kafka 이벤트 동기화 |
+| **AI Pipeline** | LLM 80초 블로킹 → 스레드 풀 고갈 | FastAPI + Ollama + n8n 비동기 (99.7% 응답시간 단축) |
+| **API Gateway** | 13개 서비스 인증 중복 제거 + 트래픽 보호 | Spring Cloud Gateway + Cookie JWT 중앙 검증 + Redis Rate Limiter |
+| **K8s + CI/CD** | 배포 자동화 | K3s + Jenkins + Rolling Update |
+
+---
+
+## 기술 스택
+
+**Backend**: Java 21, Spring Boot 3.4, Spring Cloud Gateway, JPA/Hibernate, Resilience4j
+
+**Frontend**: Vue.js 3, TypeScript, Pinia, Tailwind CSS, Vite
+
+**AI**: Python, FastAPI, Ollama (llama3 + nomic-embed-text), Redis Vector Search, n8n
+
+**Infra**: PostgreSQL 18, Apache Kafka, Redis Stack, Docker, K3s, Jenkins, Prometheus, Grafana
+
+**트래픽 대응**: Redis (SADD 원자적 중복 체크 + Rate Limiter) + Kafka (쓰기 버퍼링)
 
 ---
 
 ## 📸 스크린샷
 
-> TODO: 스크린샷 추가 예정
+### 👤 구직자
+| 대시보드 | 채용공고 목록 | 채용공고 상세 |
+|:-:|:-:|:-:|
+| ![Dashboard](docs/screenshots/user-dashboard.png) | ![List](docs/screenshots/user-jobpostinglist.png) | ![Detail](docs/screenshots/user-jobpostingdetail.png) |
 
-| 대시보드 | 칸반보드 |
-|---------|---------|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Kanban](docs/screenshots/kanban.png) |
+| 이력서 + AI 분석 | 채용공고 지원 | 알림 |
+|:-:|:-:|:-:|
+| ![Resume](docs/screenshots/user-resume.png) | ![Apply](docs/screenshots/user-apply.png) | ![Notification](docs/screenshots/user-notification.png) |
 
-| 공고 상세 | 감사 로그 |
-|---------|---------|
-| ![Job Detail](docs/screenshots/job-detail.png) | ![Audit](docs/screenshots/audit.png) |
+### 🏢 기업
+| 대시보드 | 지원자 관리 (리스트) | 지원자 관리 (칸반보드) |
+|:-:|:-:|:-:|
+| ![Dashboard](docs/screenshots/company-dashboard.png) | ![Application List](docs/screenshots/company-applicationlist.png) | ![Kanban Board](docs/screenshots/company-applicationkanban.png) |
+
+| AI 이력서 매칭 | 면접 일정 (리스트) | 면접 일정 (캘린더) |
+|:-:|:-:|:-:|
+| ![AI Matching](docs/screenshots/company-ai.png) | ![Interview List](docs/screenshots/company-interviewlist.png) | ![Interview Calendar](docs/screenshots/company-interviewcalendar.png) |
+
+### 🔧 관리자
+| 사용자 관리 | 사용자 통계 | 감사 로그 |
+|:-:|:-:|:-:|
+| ![Admin Users](docs/screenshots/admin-userlist.png) | ![User Stats](docs/screenshots/admin-userstat.png) | ![Audit Log](docs/screenshots/admin-auditlog.png) |
 
 ---
 
-## 📁 프로젝트 구조
+## 서비스 구성
 
 ```
-CoreBridge/
-├── README.md
-├── LICENSE
-├── docker-compose.yml
-│
+Frontend (Vue.js :5173)
+    ↓
+API Gateway (:8000)  ─── JWT 중앙 검증, 라우팅, Rate Limiter (Redis Token Bucket)
+    ↓
+┌─────────────────────────────────────────────────────────────┐
+│  user         :8001   사용자/인증/JWT 발급                   │
+│  jobposting   :8002   채용공고 CRUD (Outbox 생산자)           │
+│  comment      :8003   댓글 (Outbox 생산자)                   │
+│  view         :8004   조회수 (Outbox 생산자)                  │
+│  like         :8005   좋아요 (Outbox 생산자)                  │
+│  hot          :8006   인기 공고 집계 (Kafka 소비자)            │
+│  read         :8007   CQRS 읽기 모델 (Kafka 소비자)           │
+│  resume       :8008   이력서 관리 + AI 분석 연동               │
+│  apply        :8009   지원/채용프로세스/AI 매칭                │
+│                       (Redis 중복체크 + Kafka 비동기 쓰기 버퍼) │
+│  notification :8010   알림 (SSE + Redis Pub/Sub)             │
+│  schedule     :8011   면접 일정 관리                          │
+│  admin-audit  :8012   관리자 감사 로그                        │
+└─────────────────────────────────────────────────────────────┘
+    ↓                        ↓
+  Kafka (6 Topics)       AI Pipeline
+  Outbox → Consumer      FastAPI :9001 + Ollama :11434 + n8n :5678
+  Apply → Consumer
+```
+
+### 대규모 동시 지원 처리 구조
+
+채용 공고 마감 직전 수천~만 명의 동시 지원 트래픽을 안정적으로 처리합니다.
+
+```
+[유저 1만 명 동시 지원]
+        ↓
+Gateway Rate Limiter (초당 200건 초과 → 429 차단)
+        ↓
+Apply Service — Redis SADD (원자적 중복 체크, O(1))
+        ↓
+Kafka "corebridge-apply" 토픽에 발행 (DB 접근 없음)
+        ↓
+즉시 응답: "접수되었습니다" (50ms 이내)
+
+======= 유저 대기 끝 =======
+
+ApplyEventConsumer가 Kafka에서 메시지를 자기 속도로 소비
+        ↓
+DB INSERT (Apply + RecruitmentProcess)
+        ↓
+SSE 알림: "지원이 확정되었습니다"
+```
+
+---
+
+## 빠른 시작
+
+### 사전 요구사항
+
+- Docker & Docker Compose
+- Java 21+ (백엔드 빌드용)
+- Node.js 18+ (프론트엔드 빌드용)
+
+### 1. 인프라 실행
+
+```bash
+# PostgreSQL, Redis, Kafka 실행 (init-db.sql → 12개 DB 자동 생성)
+docker-compose up -d
+
+# 볼륨 초기화 후 재시작하려면:
+# docker-compose down -v && docker-compose up -d
+```
+
+### 2. 백엔드 실행
+
+```bash
+cd backend
+./gradlew build -x test
+
+# 각 서비스 개별 실행 (멀티 터미널 또는 IDE Run Configuration)
+# 시작 시 DataInitializer가 시드 데이터를 자동 생성합니다
+java -jar service/gateway/build/libs/*.jar
+java -jar service/user/build/libs/*.jar        # → admin, company, user1 계정 생성
+java -jar service/jobposting/build/libs/*.jar  # → 채용공고 5개 생성
+java -jar service/resume/build/libs/*.jar      # → 이력서 1개 생성
+# ... (나머지 서비스)
+```
+
+### 3. 프론트엔드 실행
+
+```bash
+cd frontend
+npm install
+npm run dev
+# → http://localhost:5173
+```
+
+### 4. AI Pipeline 실행 (선택)
+
+```bash
+# Ollama 설치 후
+ollama pull llama3
+ollama pull nomic-embed-text
+
+cd ai
+docker-compose up -d   # FastAPI + n8n
+```
+
+### 테스트 계정 (로컬)
+
+| 역할 | 이메일 | 비밀번호 | 시드 데이터 |
+|------|--------|---------|-----------:|
+| 관리자 | admin@test.com | qwer1234 | - |
+| 기업 | company@test.com | qwer1234 | 채용공고 5개 |
+| 지원자 | user@test.com | qwer1234 | 이력서 1개 |
+
+</br>
+
+> 모든 시드 데이터는 각 서비스의 `DataInitializer`가 앱 시작 시 자동 생성합니다.</br>
+> `init-db.sql`은 PostgreSQL 최초 실행 시 12개 데이터베이스만 생성합니다.
+
+---
+
+## 프로젝트 구조
+
+```
+CoreBridge-MSA/
+├── backend/
+│   ├── common/                  # 공통 모듈 (Outbox, Event, Snowflake, Security)
+│   ├── service/
+│   │   ├── gateway/             # API Gateway (Spring Cloud Gateway + Rate Limiter)
+│   │   ├── user/                # 사용자 + JWT 인증
+│   │   ├── jobposting/          # 채용공고 (Outbox 생산자)
+│   │   ├── jobposting-comment/  # 댓글 (Outbox 생산자)
+│   │   ├── jobposting-view/     # 조회수 (Outbox 생산자)
+│   │   ├── jobposting-like/     # 좋아요 (Outbox 생산자)
+│   │   ├── jobposting-read/     # CQRS 읽기 모델 + Circuit Breaker
+│   │   ├── jobposting-hot/      # 인기 공고 집계
+│   │   ├── resume/              # 이력서 + AI 분석 연동
+│   │   ├── apply/               # 지원/채용프로세스/AI 매칭 (Redis + Kafka 비동기)
+│   │   ├── notification/        # 알림 (SSE)
+│   │   ├── schedule/            # 면접 일정
+│   │   └── admin-audit/         # 감사 로그
+│   └── build.gradle
+├── frontend/                    # Vue.js 3 + TypeScript
+├── ai/
+│   └── fastapi/                 # AI API (임베딩, 매칭, 스코어링)
+├── deploy/
+│   ├── k3s/                     # Kubernetes 매니페스트
+│   └── load-test/               # k6 부하 테스트 스크립트
 ├── docs/
-│   ├── ARCHITECTURE.md          # 아키텍처 상세
-│   ├── API.md                   # API 명세
-│   ├── ERD.md                   # ERD 설명
-│   ├── screenshots/             # 스크린샷
-│   └── retrospective/           # 회고/트러블슈팅
-│
-├── backend/                     # Spring Boot MSA (13개 서비스)
-│   ├── common/                  # 공통 모듈
-│   ├── infra/                   # 인프라 모듈
-│   └── service/
-│       ├── user/
-│       ├── jobposting/
-│       ├── application/
-│       ├── process/             # ⭐ State Machine
-│       ├── notification/        # SSE + Redis Pub/Sub
-│       └── ...
-│
-├── frontend/                    # Vue 3 + TypeScript
-│
-├── ai/                          # AI 파이프라인
-│   ├── fastapi/                 # FastAPI AI 서비스
-│   │   ├── main.py              # 메인 앱
-│   │   ├── services/            # 분석 서비스
-│   │   └── models/              # 데이터 모델
-│   └── n8n/                     # n8n 워크플로우
-│       └── workflows/           # JSON 워크플로우 정의
-│
-├── infra/                       # 인프라 설정
-│   ├── docker/                  # Docker 설정
-│   ├── k8s/                     # Kubernetes 매니페스트
-│   └── monitoring/              # Prometheus + Grafana
-│       ├── prometheus.yml
-│       └── grafana-dashboard.json
-│
+│   ├── ARCHITECTURE.md           # 아키텍처 문서
+│   ├── API.md                    # API 명세
+│   ├── ERD.md                    # ERD 설계
+│   ├── design/                   # 패턴별 설계 문서 (6개)
+│   └── retrospective/            # 기술 회고 (4개)
 ├── scripts/
-│   └── init-db.sql
-│
-└── .github/
-    ├── workflows/ci.yml
-    └── pull_request_template.md
+│   └── init-db.sql               # DB 생성 (시드 데이터는 DataInitializer)
+└── docker-compose.yml            # 인프라 (PostgreSQL, Redis, Kafka)
 ```
 
 ---
 
-## 📝 기술적 의사결정
+## 문서
 
-### 1. State Machine 패턴 선택
-
-| 대안 | 장점 | 단점 | 선택 |
-|------|------|------|------|
-| if-else | 단순 | 상태 늘어나면 복잡 | ❌ |
-| State 패턴 (GoF) | 확장성 | 클래스 폭발 | ❌ |
-| **Enum 기반 State Machine** | 간결 + 타입 안전 | - | ✅ |
-
-→ [상세 회고](docs/retrospective/state-machine.md)
-
-### 2. Ollama 로컬 LLM 선택
-
-| 대안 | 장점 | 단점 | 선택 |
-|------|------|------|------|
-| OpenAI API | 성능 우수 | 비용, 데이터 외부 전송 | ❌ |
-| HuggingFace | 무료 | 직접 호스팅 필요, 복잡 | ❌ |
-| **Ollama** | 로컬, 무료, 간편 | 성능 제한 | ✅ |
-
-→ 로컬 LLM으로 **비용 절감**, **데이터 프라이버시 보장**, **빠른 반복 개발**
-
-### 3. MSA vs Monolith
-
-| 항목 | MSA | Monolith |
-|------|-----|----------|
-| 확장성 | ✅ 서비스별 독립 스케일링 | ❌ 전체 스케일링 |
-| 복잡도 | ❌ 서비스간 통신 | ✅ 단순 |
-| 배포 | ✅ 독립 배포 | ❌ 전체 배포 |
-
-→ 채용 시스템 특성상 기능별 트래픽 차이가 커서 MSA 선택
-
-### 4. 실시간 알림: SSE + Redis Pub/Sub
-
-| 대안 | 장점 | 단점 | 선택 |
-|------|------|------|------|
-| WebSocket | 양방향 | 연결 관리 복잡 | ❌ |
-| Long Polling | 단순 | 리소스 낭비 | ❌ |
-| **SSE + Redis** | 단방향 충분, 확장성 | - | ✅ |
-
-→ 알림은 서버→클라이언트 단방향이므로 SSE가 적합, Redis Pub/Sub로 다중 서버 지원
+| 문서 | 설명 |
+|------|------|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 전체 아키텍처, 포트 매핑, Kafka 토픽, AI 파이프라인 |
+| [API.md](docs/API.md) | Gateway 기반 API 명세 (13개 서비스) |
+| [ERD.md](docs/ERD.md) | 데이터베이스 설계 (Outbox, CQRS 포함) |
+| [Outbox 설계문서](docs/design/) | 왜 Outbox을 선택하였을까? (CDC/Dual Write 비교) |
+| [Circuit Breaker 설계문서](docs/design/) | 왜 Resilience4j를 적용하였을까? (파라미터 튜닝 근거) |
+| [CQRS 설계문서](docs/design/) | 왜 ConcurrentHashMap인가? (Redis 대비) |
+| [AI Pipeline 설계문서](docs/design/) | 왜 n8n 비동기를 사용했는가? (Spring @Async 대비) |
+| [API Gateway 설계문서](docs/design/) | 왜 Cookie JWT인가? (XSS vs CSRF) |
+| [K8s/CI/CD 설계문서](docs/design/) | 왜 K3s + Rolling Update인가? |
 
 ---
 
-## 🔗 관련 문서
+## 테스트
 
-- [아키텍처 상세](docs/ARCHITECTURE.md)
-- [API 명세](docs/API.md)
-- [ERD](docs/ERD.md)
-- [AI 파이프라인](ai/README.md)
-- **회고/트러블슈팅**
-  - [State Machine 패턴 도입기](docs/retrospective/state-machine.md)
-  - [MSA 아키텍처 설계](docs/retrospective/msa-architecture.md)
-  - [AI 파이프라인 구축](docs/retrospective/ai-pipeline.md)
-  - [CI/CD & Kubernetes](docs/retrospective/devops-cicd.md)
+```bash
+cd backend
+./gradlew test
+```
+
+Java 240파일, 테스트 29개 파일 · 226개 메서드 (단위 + 통합)
 
 ---
 
-## 🛤 로드맵
+## 개발 환경
 
-- [ ] MVP - 기본 채용 프로세스 (State Machine)
-- [ ] 칸반보드 UI (드래그앤드롭)
-- [ ] 실시간 알림 (SSE + Redis Pub/Sub)
-- [ ] AI 이력서 분석 (Ollama LLM)
-- [ ] JD 매칭 (Redis Vector Search)
-- [ ] 감사 로그
-- [ ] Kubernetes + Jenkins CI/CD
-- [ ] Prometheus + Grafana 모니터링
-- [ ] AI 모델 성능 최적화 (GPU, 캐싱)
-- [ ] 채용 공고 추천 시스템
+- iMac M1 (2021) / 16GB RAM / macOS Sequoia 15.5
+- IntelliJ IDEA / VS Code
+- K3s on WSL2 (CI/CD 검증용)
 
 ---
 
-## 👨‍💻 개발자
+## 🌐 Portfolio
 
-**양승우**
-
-- GitHub: [@yourusername](https://github.com/atimaby28)
-- Email: your@email.com
+![Dashboard](docs/screenshots/portfolio.jpg)
 
 ---
 
-## 📄 라이선스
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: corebridge-jobposting-comment
+  namespace: corebridge
+  labels:
+    app: corebridge-jobposting-comment
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: corebridge-jobposting-comment
+  template:
+    metadata:
+      labels:
+        app: corebridge-jobposting-comment
+    spec:
+      containers:
+        - name: jobposting-comment
+          image: atimaby12/corebridge-jobposting-comment:latest
+          ports:
+            - containerPort: 8003
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8003
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8003
+            initialDelaySeconds: 60
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: corebridge-jobposting-comment
+  namespace: corebridge
+spec:
+  type: ClusterIP
+  selector:
+    app: corebridge-jobposting-comment
+  ports:
+    - port: 8003
+      targetPort: 8003

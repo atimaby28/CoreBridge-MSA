@@ -1,0 +1,129 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: gateway
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  cloud:
+    gateway:
+      # 라우팅 설정 (순서 중요: 더 구체적인 경로가 먼저!)
+      routes:
+        # User Service (8001)
+        - id: user-service
+          uri: http://localhost:8001
+          predicates:
+            - Path=/api/v1/users/**
+
+        # JobPosting-Read Service (8007) - 통계 포함 조회
+        - id: jobposting-read-service
+          uri: http://localhost:8007
+          predicates:
+            - Path=/api/v1/jobposting-read/**
+
+        # JobPosting-Like Service (8005) - 좋아요
+        - id: jobposting-like-service
+          uri: http://localhost:8005
+          predicates:
+            - Path=/api/v1/jobposting-likes/**
+
+        # JobPosting-View Service (8004) - 조회수
+        - id: jobposting-view-service
+          uri: http://localhost:8004
+          predicates:
+            - Path=/api/v1/jobposting-views/**
+
+        # JobPosting-Comment Service (8003) - 댓글
+        - id: jobposting-comment-service
+          uri: http://localhost:8003
+          predicates:
+            - Path=/api/v1/comments/**
+
+        # Jobposting-Hot Service (8006) - 인기 공고
+        - id: jobposting-hot-service
+          uri: http://localhost:8006
+          predicates:
+            - Path=/api/v1/jobposting-hot/**
+
+        # JobPosting Service (8002) - 기본 CRUD (마지막에 배치!)
+        - id: jobposting-service
+          uri: http://localhost:8002
+          predicates:
+            - Path=/api/v1/jobpostings/**
+
+        # Apply Service (8009) — Rate Limiter 적용
+        - id: apply-service
+          uri: http://localhost:8009
+          predicates:
+            - Path=/api/v1/applies/**,/api/v1/processes/**,/api/v1/ai-matching/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 100
+                redis-rate-limiter.burstCapacity: 200
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@applyRateLimiterKeyResolver}"
+
+        # Schedule Service (8011)
+        - id: schedule-service
+          uri: http://localhost:8011
+          predicates:
+            - Path=/api/v1/schedules/**
+
+        # Notification SSE (8010) - SSE 스트리밍용 별도 라우트 (타임아웃 연장)
+        - id: notification-sse
+          uri: http://localhost:8010
+          predicates:
+            - Path=/api/v1/notifications/subscribe
+          metadata:
+            response-timeout: 3600000    # 1시간
+            connect-timeout: 5000
+
+        # Notification Service (8010)
+        - id: notification-service
+          uri: http://localhost:8010
+          predicates:
+            - Path=/api/v1/notifications/**
+
+        # Resume Service (8008)
+        - id: resume-service
+          uri: http://localhost:8008
+          predicates:
+            - Path=/api/v1/resumes/**
+
+        # Admin-Audit Service (8012)
+        - id: admin-audit-service
+          uri: http://localhost:8012
+          predicates:
+            - Path=/api/v1/admin/**, /api/v1/audit/**
+
+      # 기본 설정
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+
+# JWT 설정 - Gateway와 User 서비스가 동일한 secret 사용 필수!
+jwt:
+  secret: ${JWT_SECRET:corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}
+  access-token-expiration: 1800000   # 30분
+  refresh-token-expiration: 604800000  # 7일
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, gateway
+  endpoint:
+    gateway:
+      enabled: true
+
+# 로깅
+logging:
+  level:
+    halo.corebridge.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG

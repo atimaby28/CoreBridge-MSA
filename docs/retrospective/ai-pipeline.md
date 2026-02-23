@@ -60,7 +60,7 @@
 def analyze_resume(text: str) -> dict:
     # Ollama 직접 호출
     response = ollama.generate(
-        model="llama3.2",
+        model="llama3",
         prompt=f"다음 이력서를 요약해줘: {text}"
     )
     return {"summary": response}
@@ -139,7 +139,7 @@ prompt = """
 
 **증상**: Ollama가 GPU 메모리 부족으로 크래시
 **해결**: 
-- 모델을 `llama3.2:3b`로 경량화
+- 모델을 `llama3`로 경량화
 - 동시 요청 수 제한 (세마포어)
 
 ## 성과

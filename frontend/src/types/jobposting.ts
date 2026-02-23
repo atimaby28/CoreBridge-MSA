@@ -1,0 +1,151 @@
+// ============================================
+// 채용공고 (Jobposting)
+// ============================================
+
+// 채용공고 기본 정보
+export interface Jobposting {
+  jobpostingId: number
+  title: string
+  content: string
+  boardId: number
+  userId: number
+  requiredSkills?: string[]   // 필수 스킬
+  preferredSkills?: string[]  // 우대 스킬
+  createdAt: string
+  updatedAt: string
+}
+
+// Read 서비스 응답 (통계 + 닉네임 포함)
+export interface JobpostingReadResponse {
+  jobpostingId: number
+  title: string
+  content: string
+  boardId: number
+  userId: number
+  nickname: string
+  requiredSkills?: string[]   // 필수 스킬
+  preferredSkills?: string[]  // 우대 스킬
+  viewCount: number
+  likeCount: number
+  commentCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+// 채용공고 상세 정보 (Read 응답 + 좋아요 상태)
+export interface JobpostingDetail extends JobpostingReadResponse {
+  isLiked: boolean
+}
+
+// Read 서비스 페이지 응답
+export interface JobpostingReadPageResponse {
+  jobpostings: JobpostingReadResponse[]
+  jobpostingCount: number
+}
+
+// 채용공고 생성 요청
+export interface JobpostingCreateRequest {
+  title: string
+  content: string
+  boardId: number
+  requiredSkills?: string[]   // 필수 스킬
+  preferredSkills?: string[]  // 우대 스킬
+}
+
+// 채용공고 수정 요청
+export interface JobpostingUpdateRequest {
+  title?: string
+  content?: string
+  requiredSkills?: string[]   // 필수 스킬
+  preferredSkills?: string[]  // 우대 스킬
+}
+
+// 채용공고 목록 응답 (페이징)
+export interface JobpostingPageResponse {
+  jobpostings: Jobposting[]
+  jobpostingCount: number
+}
+
+// 채용공고 목록 응답 (리스트)
+export interface JobpostingListResponse {
+  jobpostings: Jobposting[]
+}
+
+// ============================================
+// 게시판 (Board)
+// ============================================
+
+export interface Board {
+  boardId: number
+  name: string
+  description?: string
+}
+
+// 기본 게시판 목록 (하드코딩 - 나중에 API로 변경)
+export const DEFAULT_BOARDS: Board[] = [
+  { boardId: 1, name: '전체', description: '모든 채용공고' },
+  { boardId: 2, name: 'IT/개발', description: 'IT 및 개발 직군' },
+  { boardId: 3, name: '마케팅', description: '마케팅 직군' },
+  { boardId: 4, name: '디자인', description: '디자인 직군' },
+  { boardId: 5, name: '영업', description: '영업 직군' },
+]
+
+// ============================================
+// 좋아요 (Like)
+// ============================================
+
+export interface LikeResponse {
+  jobpostingId: number
+  userId: number
+  liked: boolean
+  likeCount: number
+}
+
+// ============================================
+// 조회수 (View)
+// ============================================
+
+export interface ViewCountResponse {
+  jobpostingId: number
+  viewCount: number
+}
+
+// ============================================
+// 댓글 (Comment)
+// ============================================
+
+export interface Comment {
+  commentId: number
+  jobpostingId: number
+  userId: number
+  content: string
+  parentCommentId?: number  // 대댓글인 경우
+  createdAt: string
+  updatedAt: string
+  deleted: boolean
+}
+
+export interface CommentCreateRequest {
+  jobpostingId: number
+  content: string
+  parentCommentId?: number
+}
+
+export interface CommentPageResponse {
+  comments: Comment[]
+  commentCount: number
+}
+
+// ============================================
+// 인기 공고 (Hot Jobposting)
+// ============================================
+
+export interface JobpostingHotResponse {
+  jobpostingId: number
+  title: string
+  boardId: number
+  likeCount: number
+  commentCount: number
+  viewCount: number
+  score: number
+}

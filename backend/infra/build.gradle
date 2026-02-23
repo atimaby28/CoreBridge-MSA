@@ -1,0 +1,18 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    // Common 모듈 의존
+    api project(':common')
+
+    // Redis (추후 활성화)
+    // api 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Kafka (추후 활성화)
+    // api 'org.springframework.kafka:spring-kafka'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}

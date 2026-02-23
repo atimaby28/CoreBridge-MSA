@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: gateway-test
+  main:
+    web-application-type: reactive
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+jwt:
+  secret: corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+logging:
+  level:
+    halo.corebridge: DEBUG

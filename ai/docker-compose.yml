@@ -1,0 +1,32 @@
+# ==========================================
+# CoreBridge-MSA AI Pipeline (ai/fastapi/)
+# 실행: docker-compose up -d
+# ==========================================
+
+services:
+
+  fastapi:
+    build: ./fastapi
+    container_name: corebridge-ai
+    ports:
+      - "9001:9001"
+    environment:
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - REDIS_HOST=host.docker.internal
+      - GEN_MODEL=llama3
+
+  n8n:
+    image: n8nio/n8n
+    container_name: corebridge-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=0.0.0.0
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - fastapi
+
+volumes:
+  n8n_data:

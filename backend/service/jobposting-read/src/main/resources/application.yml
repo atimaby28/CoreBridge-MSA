@@ -1,0 +1,100 @@
+server:
+  port: 8007
+
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  application:
+    name: jobposting-read-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/jobposting_read
+    username: root
+    password: qwer1234
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 1
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:corebridge-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+# Client URLs
+client:
+  jobposting:
+    url: http://localhost:8002
+  user:
+    url: http://localhost:8001
+  comment:
+    url: http://localhost:8003
+  view:
+    url: http://localhost:8004
+  like:
+    url: http://localhost:8005
+
+# Audit 설정
+audit:
+  enabled: true
+  service-name: jobposting-read
+  service-url: http://localhost:8012
+
+logging:
+  level:
+    halo.corebridge: DEBUG
+# Outbox (소비자 서비스 - 비활성화)
+outbox:
+  enabled: false
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        slowCallRateThreshold: 80
+        slowCallDurationThreshold: 3s
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        recordExceptions:
+          - org.springframework.web.client.RestClientException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+    instances:
+      jobpostingService:
+        baseConfig: default
+      userService:
+        baseConfig: default
+      commentService:
+        baseConfig: default
+      viewService:
+        baseConfig: default
+      likeService:
+        baseConfig: default
+
+# Actuator - Circuit Breaker 상태 노출
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, circuitbreakers, metrics
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
