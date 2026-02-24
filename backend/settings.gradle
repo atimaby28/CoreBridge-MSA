@@ -15,9 +15,6 @@ rootProject.name = 'corebridge-backend'
 /* 공통 모듈 */
 include('common')
 
-/* 기술 인프라 */
-include('infra')
-
 /* API Gateway */
 include('service:gateway')
 
