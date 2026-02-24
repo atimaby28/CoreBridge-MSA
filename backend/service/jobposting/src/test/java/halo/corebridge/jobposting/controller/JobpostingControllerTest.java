@@ -112,10 +112,10 @@ class JobpostingControllerTest {
 
         @Test
         @DisplayName("실패: 필수 파라미터 누락 시 에러 응답을 반환한다")
-        void readAll_missingParams_returnsError() throws Exception {
+        void readAll_missingParams_returnsBadRequest() throws Exception {
             // when & then
             mockMvc.perform(get("/api/v1/jobpostings"))
-                    .andExpect(status().isInternalServerError())
+                    .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.success").value(false));
         }
     }

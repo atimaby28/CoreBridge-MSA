@@ -12,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureDataJpa;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
@@ -37,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 classes = {SecurityConfig.class, GatewayAuthenticationFilter.class, AuditLoggingFilter.class}
         )
 )
+@AutoConfigureDataJpa
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("ScheduleController 테스트")
 class ScheduleControllerTest {
