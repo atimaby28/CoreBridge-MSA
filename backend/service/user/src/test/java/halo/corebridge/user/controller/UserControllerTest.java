@@ -2,6 +2,7 @@ package halo.corebridge.user.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import halo.corebridge.common.audit.filter.AuditLoggingFilter;
+import halo.corebridge.common.security.GatewayAuthenticationFilter;
 import halo.corebridge.user.model.dto.UserDto;
 import halo.corebridge.user.model.enums.UserRole;
 import halo.corebridge.user.model.enums.UserStatus;
@@ -35,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         controllers = UserController.class,
         excludeFilters = @ComponentScan.Filter(
                 type = FilterType.ASSIGNABLE_TYPE,
-                classes = {JwtAuthenticationFilter.class, AuditLoggingFilter.class}
+                classes = {GatewayAuthenticationFilter.class, AuditLoggingFilter.class}
         )
 )
 @AutoConfigureMockMvc(addFilters = false)

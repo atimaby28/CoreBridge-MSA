@@ -25,6 +25,9 @@ class JobpostingViewServiceTest {
     @Mock
     JobpostingViewCountRepository jobpostingViewCountRepository;
 
+    @Mock
+    halo.corebridge.common.outboxmessagerelay.OutboxEventPublisher outboxEventPublisher;
+
     @Test
     @DisplayName("조회수 증가 - 기존 레코드 있으면 UPDATE")
     void increase_existingRecord_shouldUpdate() {
@@ -53,6 +56,8 @@ class JobpostingViewServiceTest {
         Long userId = 100L;
 
         given(jobpostingViewCountRepository.increase(jobpostingId)).willReturn(0);
+        given(jobpostingViewCountRepository.findById(jobpostingId))
+                .willReturn(Optional.of(JobpostingViewCount.init(jobpostingId, 1L)));
 
         // when
         Long result = jobpostingViewService.increase(jobpostingId, userId);

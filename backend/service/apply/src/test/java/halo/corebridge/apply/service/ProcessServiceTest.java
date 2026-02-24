@@ -36,6 +36,12 @@ class ProcessServiceTest {
     @Mock
     private ProcessHistoryRepository historyRepository;
 
+    @Mock
+    private halo.corebridge.common.outboxmessagerelay.OutboxEventPublisher outboxEventPublisher;
+
+    @Mock
+    private halo.corebridge.apply.client.NotificationClient notificationClient;
+
     private RecruitmentProcess testProcess;
 
     @BeforeEach

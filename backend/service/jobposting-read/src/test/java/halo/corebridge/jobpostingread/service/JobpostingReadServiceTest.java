@@ -30,6 +30,8 @@ class JobpostingReadServiceTest {
     private CommentClient commentClient;
     @Mock
     private UserClient userClient;
+    @Mock
+    private halo.corebridge.jobpostingread.handler.JobpostingReadCache readCache;
 
     @InjectMocks
     private JobpostingReadService jobpostingReadService;
@@ -54,6 +56,9 @@ class JobpostingReadServiceTest {
         // given
         Long jobpostingId = 1L;
         given(jobpostingClient.read(jobpostingId)).willReturn(mockJobposting);
+        given(readCache.getViewCount(jobpostingId)).willReturn(null);
+        given(readCache.getLikeCount(jobpostingId)).willReturn(null);
+        given(readCache.getCommentCount(jobpostingId)).willReturn(null);
         given(viewClient.count(jobpostingId)).willReturn(100L);
         given(likeClient.count(jobpostingId)).willReturn(50L);
         given(commentClient.count(jobpostingId)).willReturn(10L);
@@ -98,6 +103,9 @@ class JobpostingReadServiceTest {
         pageResponse.setJobpostingCount(1L);
 
         given(jobpostingClient.readAll(boardId, page, pageSize)).willReturn(pageResponse);
+        given(readCache.getViewCount(1L)).willReturn(null);
+        given(readCache.getLikeCount(1L)).willReturn(null);
+        given(readCache.getCommentCount(1L)).willReturn(null);
         given(viewClient.count(1L)).willReturn(100L);
         given(likeClient.count(1L)).willReturn(50L);
         given(commentClient.count(1L)).willReturn(10L);

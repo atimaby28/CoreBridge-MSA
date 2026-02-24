@@ -36,12 +36,15 @@ class ResumeServiceTest {
     @Mock
     private ResumeVersionRepository versionRepository;
 
+    @Mock
+    private halo.corebridge.resume.client.AiServiceClient aiServiceClient;
+
     private Resume testResume;
     private static final Long USER_ID = 100L;
 
     @BeforeEach
     void setUp() {
-        testResume = Resume.create(USER_ID, "백엔드 개발자 이력서", "경력 사항...");
+        testResume = Resume.create(1L, USER_ID, "백엔드 개발자 이력서", "경력 사항...");
         setField(testResume, "id", 1L);
     }
 
@@ -139,8 +142,8 @@ class ResumeServiceTest {
             // given
             given(resumeRepository.findByUserId(USER_ID)).willReturn(Optional.of(testResume));
             
-            ResumeVersion v1 = ResumeVersion.create(1L, 1, "제목1", "내용1");
-            ResumeVersion v2 = ResumeVersion.create(1L, 2, "제목2", "내용2");
+            ResumeVersion v1 = ResumeVersion.create(10L, 1L, 1, "제목1", "내용1");
+            ResumeVersion v2 = ResumeVersion.create(11L, 1L, 2, "제목2", "내용2");
             given(versionRepository.findByResumeIdOrderByVersionDesc(1L))
                     .willReturn(List.of(v2, v1));
 
@@ -158,7 +161,7 @@ class ResumeServiceTest {
             // given
             given(resumeRepository.findByUserId(USER_ID)).willReturn(Optional.of(testResume));
             
-            ResumeVersion targetVersion = ResumeVersion.create(1L, 1, "이전 제목", "이전 내용");
+            ResumeVersion targetVersion = ResumeVersion.create(10L, 1L, 1, "이전 제목", "이전 내용");
             given(versionRepository.findByResumeIdAndVersion(1L, 1))
                     .willReturn(Optional.of(targetVersion));
             given(versionRepository.save(any(ResumeVersion.class))).willAnswer(inv -> inv.getArgument(0));
@@ -211,7 +214,7 @@ class ResumeServiceTest {
         @DisplayName("실패: 내용 없이 분석 요청")
         void requestAnalysis_noContent() {
             // given
-            Resume emptyResume = Resume.create(USER_ID);
+            Resume emptyResume = Resume.create(99L, USER_ID);
             given(resumeRepository.findByUserId(USER_ID)).willReturn(Optional.of(emptyResume));
 
             // when & then
@@ -230,7 +233,6 @@ class ResumeServiceTest {
             ResumeDto.AiResultRequest request = new ResumeDto.AiResultRequest();
             setField(request, "summary", "5년차 백엔드 개발자");
             setField(request, "skills", "[\"Java\", \"Spring\"]");
-            setField(request, "experienceYears", 5);
 
             // when
             ResumeDto.ResumeResponse result = resumeService.updateAiResult(1L, request);
@@ -239,7 +241,6 @@ class ResumeServiceTest {
             assertThat(result.getStatus()).isEqualTo(ResumeStatus.ANALYZED);
             assertThat(result.getAiSummary()).isEqualTo("5년차 백엔드 개발자");
             assertThat(result.getAiSkills()).containsExactly("Java", "Spring");
-            assertThat(result.getAiExperienceYears()).isEqualTo(5);
         }
     }
 

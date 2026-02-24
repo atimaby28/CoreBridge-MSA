@@ -31,6 +31,9 @@ class JobpostingLikeServiceTest {
     @Mock
     JobpostingLikeCountRepository jobpostingLikeCountRepository;
 
+    @Mock
+    halo.corebridge.common.outboxmessagerelay.OutboxEventPublisher outboxEventPublisher;
+
     @Test
     @DisplayName("좋아요 상태 조회 - 좋아요한 경우")
     void read_liked_shouldReturnLikedResponse() {

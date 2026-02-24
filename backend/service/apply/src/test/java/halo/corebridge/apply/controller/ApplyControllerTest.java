@@ -4,15 +4,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import halo.corebridge.apply.config.SecurityConfig;
 import halo.corebridge.apply.model.dto.ApplyDto;
 import halo.corebridge.apply.model.enums.ProcessStep;
-import halo.corebridge.apply.security.JwtAuthenticationFilter;
-import halo.corebridge.apply.security.JwtProvider;
 import halo.corebridge.apply.service.ApplyService;
 import halo.corebridge.apply.service.ProcessService;
 import halo.corebridge.common.audit.filter.AuditLoggingFilter;
+import halo.corebridge.common.security.GatewayAuthenticationFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureDataJpa;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
@@ -39,12 +39,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 type = FilterType.ASSIGNABLE_TYPE,
                 classes = {
                         SecurityConfig.class,
-                        JwtAuthenticationFilter.class,
-                        AuditLoggingFilter.class,
-                        JwtProvider.class
+                        GatewayAuthenticationFilter.class,
+                        AuditLoggingFilter.class
                 }
         )
 )
+@AutoConfigureDataJpa
 @AutoConfigureMockMvc(addFilters = false)
 class ApplyControllerTest {
 
@@ -83,7 +83,7 @@ class ApplyControllerTest {
     class ApplyApiTests {
 
         @Test
-        @DisplayName("성공: 지원 생성")
+        @DisplayName("성공: 지원 생성 (비동기 접수)")
         void apply_success() throws Exception {
             // given
             ApplyDto.CreateRequest request = ApplyDto.CreateRequest.builder()
@@ -93,7 +93,8 @@ class ApplyControllerTest {
                     .coverLetter("열심히 하겠습니다.")
                     .build();
 
-            given(applyService.apply(any())).willReturn(createTestResponse());
+            ApplyDto.ApplyAcceptedResponse acceptedResponse = ApplyDto.ApplyAcceptedResponse.of(100L, 200L);
+            given(applyService.apply(any())).willReturn(acceptedResponse);
 
             // when & then
             mockMvc.perform(post("/api/v1/applies")
@@ -102,8 +103,9 @@ class ApplyControllerTest {
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.result.applyId").value(1L))
-                    .andExpect(jsonPath("$.result.currentStep").value("APPLIED"));
+                    .andExpect(jsonPath("$.result.jobpostingId").value(100))
+                    .andExpect(jsonPath("$.result.userId").value(200))
+                    .andExpect(jsonPath("$.result.status").value("ACCEPTED"));
         }
     }
 

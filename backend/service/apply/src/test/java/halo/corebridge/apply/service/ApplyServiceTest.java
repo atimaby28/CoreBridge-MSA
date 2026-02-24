@@ -15,15 +15,30 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.SetOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
+/**
+ * ApplyService 단위 테스트
+ *
+ * [비동기 지원 구조 반영 — v2]
+ * apply()는 DB를 거치지 않고 Redis SADD + Kafka 발행만 수행합니다.
+ * 실제 DB 저장은 ApplyEventConsumer가 백그라운드에서 처리합니다.
+ *
+ * 변경 이력:
+ * - v1: applyRepository 기반 동기 지원 테스트
+ * - v2: Redis + Kafka 비동기 전환에 맞춰 테스트 리팩토링
+ */
 @ExtendWith(MockitoExtension.class)
 class ApplyServiceTest {
 
@@ -39,6 +54,15 @@ class ApplyServiceTest {
     @Mock
     private ProcessService processService;
 
+    @Mock
+    private StringRedisTemplate redisTemplate;
+
+    @Mock
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    @Mock
+    private SetOperations<String, String> setOperations;
+
     private Apply testApply;
     private RecruitmentProcess testProcess;
 
@@ -48,12 +72,16 @@ class ApplyServiceTest {
         testProcess = RecruitmentProcess.create(10L, 1L, 100L, 200L);
     }
 
+    // ============================================
+    // 지원하기 (비동기: Redis SADD + Kafka 발행)
+    // ============================================
+
     @Nested
-    @DisplayName("지원하기")
+    @DisplayName("지원하기 (비동기)")
     class ApplyTests {
 
         @Test
-        @DisplayName("성공: 새로운 지원 생성")
+        @DisplayName("성공: Redis 중복 체크 통과 → Kafka 발행 → 즉시 ACCEPTED 응답")
         void apply_success() {
             // given
             ApplyDto.CreateRequest request = ApplyDto.CreateRequest.builder()
@@ -63,26 +91,27 @@ class ApplyServiceTest {
                     .coverLetter("열심히 하겠습니다.")
                     .build();
 
-            given(applyRepository.existsByJobpostingIdAndUserId(100L, 200L)).willReturn(false);
-            given(applyRepository.save(any(Apply.class))).willAnswer(invocation -> {
-                Apply saved = invocation.getArgument(0);
-                return saved;
-            });
-            given(processService.createProcess(any(), eq(100L), eq(200L))).willReturn(testProcess);
+            given(redisTemplate.opsForSet()).willReturn(setOperations);
+            given(setOperations.add("applied:100", "200")).willReturn(1L); // 신규 지원
+            given(kafkaTemplate.send(eq("corebridge-apply"), eq("100"), anyString()))
+                    .willReturn(new CompletableFuture<>());
 
             // when
-            ApplyDto.ApplyDetailResponse result = applyService.apply(request);
+            ApplyDto.ApplyAcceptedResponse result = applyService.apply(request);
 
-            // then
+            // then — 즉시 응답 검증
             assertThat(result.getJobpostingId()).isEqualTo(100L);
             assertThat(result.getUserId()).isEqualTo(200L);
-            assertThat(result.getCurrentStep()).isEqualTo(ProcessStep.APPLIED);
-            verify(applyRepository, times(1)).save(any(Apply.class));
-            verify(processService, times(1)).createProcess(any(), eq(100L), eq(200L));
+            assertThat(result.getStatus()).isEqualTo("ACCEPTED");
+
+            // DB 접근 없음 검증 (비동기 처리는 Consumer 담당)
+            verify(applyRepository, never()).save(any());
+            verify(applyRepository, never()).existsByJobpostingIdAndUserId(any(), any());
+            verify(kafkaTemplate, times(1)).send(eq("corebridge-apply"), eq("100"), anyString());
         }
 
         @Test
-        @DisplayName("실패: 중복 지원")
+        @DisplayName("실패: Redis SADD 0 반환 → 중복 지원 예외")
         void apply_duplicate_throwsException() {
             // given
             ApplyDto.CreateRequest request = ApplyDto.CreateRequest.builder()
@@ -91,34 +120,86 @@ class ApplyServiceTest {
                     .resumeId(300L)
                     .build();
 
-            given(applyRepository.existsByJobpostingIdAndUserId(100L, 200L)).willReturn(true);
+            given(redisTemplate.opsForSet()).willReturn(setOperations);
+            given(setOperations.add("applied:100", "200")).willReturn(0L); // 이미 존재
 
             // when & then
             assertThatThrownBy(() -> applyService.apply(request))
                     .isInstanceOf(BaseException.class);
 
-            verify(applyRepository, never()).save(any());
-            verify(processService, never()).createProcess(any(), any(), any());
+            // Kafka 발행 시도조차 안 함
+            verify(kafkaTemplate, never()).send(anyString(), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("실패: Kafka 발행 실패 → Redis 롤백 (재지원 가능)")
+        void apply_kafkaFail_rollbackRedis() {
+            // given
+            ApplyDto.CreateRequest request = ApplyDto.CreateRequest.builder()
+                    .jobpostingId(100L)
+                    .userId(200L)
+                    .resumeId(300L)
+                    .build();
+
+            given(redisTemplate.opsForSet()).willReturn(setOperations);
+            given(setOperations.add("applied:100", "200")).willReturn(1L); // 신규 통과
+            given(kafkaTemplate.send(eq("corebridge-apply"), eq("100"), anyString()))
+                    .willThrow(new RuntimeException("Kafka broker unavailable"));
+
+            // when & then
+            assertThatThrownBy(() -> applyService.apply(request))
+                    .isInstanceOf(BaseException.class);
+
+            // Redis 롤백 검증 → 유저가 재지원할 수 있도록
+            verify(setOperations, times(1)).remove("applied:100", "200");
+        }
+
+        @Test
+        @DisplayName("실패: Redis SADD null 반환 → 중복 지원 예외")
+        void apply_redisNull_throwsException() {
+            // given
+            ApplyDto.CreateRequest request = ApplyDto.CreateRequest.builder()
+                    .jobpostingId(100L)
+                    .userId(200L)
+                    .resumeId(300L)
+                    .build();
+
+            given(redisTemplate.opsForSet()).willReturn(setOperations);
+            given(setOperations.add("applied:100", "200")).willReturn(null); // Redis 이상
+
+            // when & then
+            assertThatThrownBy(() -> applyService.apply(request))
+                    .isInstanceOf(BaseException.class);
+
+            verify(kafkaTemplate, never()).send(anyString(), anyString(), anyString());
         }
     }
+
+    // ============================================
+    // 지원 취소
+    // ============================================
 
     @Nested
     @DisplayName("지원 취소")
     class CancelTests {
 
         @Test
-        @DisplayName("성공: APPLIED 상태에서 취소")
+        @DisplayName("성공: APPLIED 상태에서 취소 → DB 삭제 + Redis 제거")
         void cancel_success() {
             // given
             given(applyRepository.findById(1L)).willReturn(Optional.of(testApply));
             given(processRepository.findByApplyId(1L)).willReturn(Optional.of(testProcess));
+            given(redisTemplate.opsForSet()).willReturn(setOperations);
 
             // when
             applyService.cancel(1L, 200L);
 
-            // then
+            // then — DB 삭제 검증
             verify(processRepository, times(1)).delete(testProcess);
             verify(applyRepository, times(1)).delete(testApply);
+
+            // Redis에서도 제거 → 재지원 가능하도록
+            verify(setOperations, times(1)).remove("applied:100", "200");
         }
 
         @Test
@@ -162,6 +243,10 @@ class ApplyServiceTest {
                     .isInstanceOf(BaseException.class);
         }
     }
+
+    // ============================================
+    // 지원 조회
+    // ============================================
 
     @Nested
     @DisplayName("지원 조회")
@@ -233,6 +318,10 @@ class ApplyServiceTest {
             assertThat(result.getApplies()).hasSize(1);
         }
     }
+
+    // ============================================
+    // 메모 수정
+    // ============================================
 
     @Nested
     @DisplayName("메모 수정")

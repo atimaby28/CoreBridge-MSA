@@ -4,14 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import halo.corebridge.apply.config.SecurityConfig;
 import halo.corebridge.apply.model.dto.ProcessDto;
 import halo.corebridge.apply.model.enums.ProcessStep;
-import halo.corebridge.apply.security.JwtAuthenticationFilter;
-import halo.corebridge.apply.security.JwtProvider;
 import halo.corebridge.apply.service.ProcessService;
 import halo.corebridge.common.audit.filter.AuditLoggingFilter;
+import halo.corebridge.common.security.GatewayAuthenticationFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureDataJpa;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
@@ -37,12 +37,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 type = FilterType.ASSIGNABLE_TYPE,
                 classes = {
                         SecurityConfig.class,
-                        JwtAuthenticationFilter.class,
-                        AuditLoggingFilter.class,
-                        JwtProvider.class
+                        GatewayAuthenticationFilter.class,
+                        AuditLoggingFilter.class
                 }
         )
 )
+@AutoConfigureDataJpa
 @AutoConfigureMockMvc(addFilters = false)
 class ProcessControllerTest {
 

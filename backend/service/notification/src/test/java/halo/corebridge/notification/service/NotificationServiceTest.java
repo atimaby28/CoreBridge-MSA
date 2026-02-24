@@ -73,7 +73,7 @@ class NotificationServiceTest {
                 .build();
 
         given(notificationRepository.save(any(Notification.class))).willReturn(testNotification);
-        doNothing().when(stringRedisTemplate).convertAndSend(anyString(), anyString());
+        given(stringRedisTemplate.convertAndSend(anyString(), anyString())).willReturn(1L);
 
         // when
         NotificationDto.CreateResponse response = notificationService.create(request);
