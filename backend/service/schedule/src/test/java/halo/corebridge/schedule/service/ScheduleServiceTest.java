@@ -70,7 +70,7 @@ class ScheduleServiceTest {
     }
 
     @Test
-    @DisplayName("일정 생성 성공")
+    @DisplayName("성공: 일정 생성")
     void createSchedule_Success() {
         // given
         ScheduleDto.CreateRequest request = ScheduleDto.CreateRequest.builder()
@@ -103,7 +103,7 @@ class ScheduleServiceTest {
     }
 
     @Test
-    @DisplayName("일정 생성 실패 - 지원자 충돌")
+    @DisplayName("실패: 일정 생성 - 지원자 충돌")
     void createSchedule_ApplicantConflict_Fail() {
         // given
         ScheduleDto.CreateRequest request = ScheduleDto.CreateRequest.builder()
@@ -125,7 +125,7 @@ class ScheduleServiceTest {
     }
 
     @Test
-    @DisplayName("일정 조회 성공")
+    @DisplayName("성공: 일정 조회")
     void readSchedule_Success() {
         // given
         given(scheduleRepository.findById(100L)).willReturn(Optional.of(testSchedule));
@@ -139,7 +139,7 @@ class ScheduleServiceTest {
     }
 
     @Test
-    @DisplayName("일정 수정 성공")
+    @DisplayName("성공: 일정 수정")
     void updateSchedule_Success() {
         // given
         ScheduleDto.UpdateRequest request = ScheduleDto.UpdateRequest.builder()
@@ -167,7 +167,7 @@ class ScheduleServiceTest {
     }
 
     @Test
-    @DisplayName("일정 수정 실패 - 권한 없음")
+    @DisplayName("실패: 일정 수정 - 권한 없음")
     void updateSchedule_AccessDenied_Fail() {
         // given
         Long anotherCompanyId = 999L;
@@ -185,7 +185,7 @@ class ScheduleServiceTest {
     }
 
     @Test
-    @DisplayName("일정 상태 변경 - 취소")
+    @DisplayName("성공: 일정 상태 변경 - 취소")
     void updateStatus_Cancel_Success() {
         // given
         ScheduleDto.UpdateStatusRequest request = new ScheduleDto.UpdateStatusRequest(ScheduleStatus.CANCELLED);
@@ -200,7 +200,7 @@ class ScheduleServiceTest {
     }
 
     @Test
-    @DisplayName("충돌 체크 - 충돌 없음")
+    @DisplayName("성공: 충돌 체크 - 충돌 없음")
     void checkConflicts_NoConflict() {
         // given
         given(scheduleRepository.findApplicantConflicts(any(), any(), any(), any()))
@@ -219,7 +219,7 @@ class ScheduleServiceTest {
     }
 
     @Test
-    @DisplayName("충돌 체크 - 면접관 충돌")
+    @DisplayName("성공: 충돌 체크 - 면접관 충돌")
     void checkConflicts_InterviewerConflict() {
         // given
         given(scheduleRepository.findApplicantConflicts(any(), any(), any(), any()))
@@ -239,7 +239,7 @@ class ScheduleServiceTest {
     }
 
     @Test
-    @DisplayName("내 일정 목록 조회")
+    @DisplayName("성공: 내 일정 목록 조회")
     void getMySchedules_Success() {
         // given
         given(scheduleRepository.findByUserIdOrderByStartTimeAsc(userId))
@@ -258,7 +258,7 @@ class ScheduleServiceTest {
     }
 
     @Test
-    @DisplayName("캘린더 이벤트 변환")
+    @DisplayName("성공: 캘린더 이벤트 변환")
     void getCalendarEvents_Success() {
         // given
         LocalDateTime start = LocalDateTime.now();

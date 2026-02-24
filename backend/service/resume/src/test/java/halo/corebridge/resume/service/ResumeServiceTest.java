@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("ResumeService 테스트")
 class ResumeServiceTest {
 
     @InjectMocks
@@ -45,7 +47,7 @@ class ResumeServiceTest {
     @BeforeEach
     void setUp() {
         testResume = Resume.create(1L, USER_ID, "백엔드 개발자 이력서", "경력 사항...");
-        setField(testResume, "id", 1L);
+        ReflectionTestUtils.setField(testResume, "id", 1L);
     }
 
     @Nested
@@ -74,7 +76,7 @@ class ResumeServiceTest {
             given(resumeRepository.findByUserId(USER_ID)).willReturn(Optional.empty());
             given(resumeRepository.save(any(Resume.class))).willAnswer(invocation -> {
                 Resume saved = invocation.getArgument(0);
-                setField(saved, "id", 1L);
+                ReflectionTestUtils.setField(saved, "id", 1L);
                 return saved;
             });
 
@@ -102,8 +104,8 @@ class ResumeServiceTest {
             given(versionRepository.save(any(ResumeVersion.class))).willAnswer(inv -> inv.getArgument(0));
 
             ResumeDto.UpdateRequest request = new ResumeDto.UpdateRequest();
-            setField(request, "title", "수정된 이력서");
-            setField(request, "content", "수정된 내용");
+            ReflectionTestUtils.setField(request, "title", "수정된 이력서");
+            ReflectionTestUtils.setField(request, "content", "수정된 내용");
 
             int originalVersion = testResume.getCurrentVersion();
 
@@ -123,7 +125,7 @@ class ResumeServiceTest {
             given(resumeRepository.findByUserId(999L)).willReturn(Optional.empty());
 
             ResumeDto.UpdateRequest request = new ResumeDto.UpdateRequest();
-            setField(request, "title", "제목");
+            ReflectionTestUtils.setField(request, "title", "제목");
 
             // when & then
             assertThatThrownBy(() -> resumeService.update(999L, request))
@@ -231,8 +233,8 @@ class ResumeServiceTest {
             given(resumeRepository.save(any(Resume.class))).willAnswer(inv -> inv.getArgument(0));
 
             ResumeDto.AiResultRequest request = new ResumeDto.AiResultRequest();
-            setField(request, "summary", "5년차 백엔드 개발자");
-            setField(request, "skills", "[\"Java\", \"Spring\"]");
+            ReflectionTestUtils.setField(request, "summary", "5년차 백엔드 개발자");
+            ReflectionTestUtils.setField(request, "skills", "[\"Java\", \"Spring\"]");
 
             // when
             ResumeDto.ResumeResponse result = resumeService.updateAiResult(1L, request);
@@ -244,22 +246,4 @@ class ResumeServiceTest {
         }
     }
 
-    // 리플렉션 헬퍼
-    private void setField(Object target, String fieldName, Object value) {
-        try {
-            var field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(target, value);
-        } catch (NoSuchFieldException e) {
-            try {
-                var field = target.getClass().getSuperclass().getDeclaredField(fieldName);
-                field.setAccessible(true);
-                field.set(target, value);
-            } catch (Exception ex) {
-                throw new RuntimeException("Failed to set field: " + fieldName, ex);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to set field: " + fieldName, e);
-        }
-    }
 }

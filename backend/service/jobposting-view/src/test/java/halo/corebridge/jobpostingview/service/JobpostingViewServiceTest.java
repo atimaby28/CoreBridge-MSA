@@ -29,7 +29,7 @@ class JobpostingViewServiceTest {
     halo.corebridge.common.outboxmessagerelay.OutboxEventPublisher outboxEventPublisher;
 
     @Test
-    @DisplayName("조회수 증가 - 기존 레코드 있으면 UPDATE")
+    @DisplayName("성공: 조회수 증가 - 기존 레코드 있으면 UPDATE")
     void increase_existingRecord_shouldUpdate() {
         // given
         Long jobpostingId = 1L;
@@ -49,7 +49,7 @@ class JobpostingViewServiceTest {
     }
 
     @Test
-    @DisplayName("조회수 증가 - 최초 조회 시 레코드 생성")
+    @DisplayName("성공: 조회수 증가 - 최초 조회 시 레코드 생성")
     void increase_firstView_shouldCreateRecord() {
         // given
         Long jobpostingId = 1L;
@@ -68,7 +68,7 @@ class JobpostingViewServiceTest {
     }
 
     @Test
-    @DisplayName("조회수 조회 - 레코드 있으면 조회수 반환")
+    @DisplayName("성공: 조회수 조회 - 레코드 있으면 조회수 반환")
     void count_existingRecord_shouldReturnCount() {
         // given
         Long jobpostingId = 1L;
@@ -83,7 +83,7 @@ class JobpostingViewServiceTest {
     }
 
     @Test
-    @DisplayName("조회수 조회 - 레코드 없으면 0 반환")
+    @DisplayName("성공: 조회수 조회 - 레코드 없으면 0 반환")
     void count_noRecord_shouldReturnZero() {
         // given
         Long jobpostingId = 1L;

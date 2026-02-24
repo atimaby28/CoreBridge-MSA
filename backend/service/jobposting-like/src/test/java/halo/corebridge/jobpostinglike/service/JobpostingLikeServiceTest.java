@@ -35,7 +35,7 @@ class JobpostingLikeServiceTest {
     halo.corebridge.common.outboxmessagerelay.OutboxEventPublisher outboxEventPublisher;
 
     @Test
-    @DisplayName("좋아요 상태 조회 - 좋아요한 경우")
+    @DisplayName("성공: 좋아요 상태 조회 - 좋아요한 경우")
     void read_liked_shouldReturnLikedResponse() {
         // given
         Long jobpostingId = 1L;
@@ -54,7 +54,7 @@ class JobpostingLikeServiceTest {
     }
 
     @Test
-    @DisplayName("좋아요 상태 조회 - 좋아요 안 한 경우")
+    @DisplayName("성공: 좋아요 상태 조회 - 좋아요 안 한 경우")
     void read_notLiked_shouldReturnNotLikedResponse() {
         // given
         Long jobpostingId = 1L;
@@ -71,7 +71,7 @@ class JobpostingLikeServiceTest {
     }
 
     @Test
-    @DisplayName("좋아요 수 조회 - 레코드 있으면 카운트 반환")
+    @DisplayName("성공: 좋아요 수 조회 - 레코드 있으면 카운트 반환")
     void count_existingRecord_shouldReturnCount() {
         // given
         Long jobpostingId = 1L;
@@ -86,7 +86,7 @@ class JobpostingLikeServiceTest {
     }
 
     @Test
-    @DisplayName("좋아요 수 조회 - 레코드 없으면 0 반환")
+    @DisplayName("성공: 좋아요 수 조회 - 레코드 없으면 0 반환")
     void count_noRecord_shouldReturnZero() {
         // given
         Long jobpostingId = 1L;
@@ -101,7 +101,7 @@ class JobpostingLikeServiceTest {
     }
 
     @Test
-    @DisplayName("좋아요 - 처음 좋아요하면 Like 저장 + Count 증가")
+    @DisplayName("성공: 좋아요 - 처음 좋아요하면 Like 저장 + Count 증가")
     void like_firstTime_shouldSaveAndIncrease() {
         // given
         Long jobpostingId = 1L;
@@ -120,7 +120,7 @@ class JobpostingLikeServiceTest {
     }
 
     @Test
-    @DisplayName("좋아요 - 이미 좋아요한 경우 무시")
+    @DisplayName("성공: 좋아요 - 이미 좋아요한 경우 무시")
     void like_alreadyLiked_shouldIgnore() {
         // given
         Long jobpostingId = 1L;
@@ -138,7 +138,7 @@ class JobpostingLikeServiceTest {
     }
 
     @Test
-    @DisplayName("좋아요 - 첫 좋아요면 Count 레코드 생성")
+    @DisplayName("성공: 좋아요 - 첫 좋아요면 Count 레코드 생성")
     void like_firstLikeOnPost_shouldCreateCountRecord() {
         // given
         Long jobpostingId = 1L;
@@ -156,7 +156,7 @@ class JobpostingLikeServiceTest {
     }
 
     @Test
-    @DisplayName("좋아요 취소 - 좋아요한 상태면 삭제 + Count 감소")
+    @DisplayName("성공: 좋아요 취소 - 좋아요한 상태면 삭제 + Count 감소")
     void unlike_liked_shouldDeleteAndDecrease() {
         // given
         Long jobpostingId = 1L;
@@ -175,7 +175,7 @@ class JobpostingLikeServiceTest {
     }
 
     @Test
-    @DisplayName("좋아요 취소 - 좋아요 안 한 상태면 무시")
+    @DisplayName("성공: 좋아요 취소 - 좋아요 안 한 상태면 무시")
     void unlike_notLiked_shouldIgnore() {
         // given
         Long jobpostingId = 1L;

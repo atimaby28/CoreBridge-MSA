@@ -65,7 +65,7 @@ class JobpostingHotServiceTest {
     }
 
     @Test
-    @DisplayName("오늘의 인기 공고 조회 - 성공")
+    @DisplayName("성공: 오늘의 인기 공고 조회")
     void readTopN_success() {
         // given
         given(jobpostingHotRepository.findTopByDateKey(LocalDate.now(), 10))
@@ -81,7 +81,7 @@ class JobpostingHotServiceTest {
     }
 
     @Test
-    @DisplayName("특정 날짜 인기 공고 조회 - 성공")
+    @DisplayName("성공: 특정 날짜 인기 공고 조회")
     void readAll_success() {
         // given
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -97,7 +97,7 @@ class JobpostingHotServiceTest {
     }
 
     @Test
-    @DisplayName("인기 공고 등록 - 성공")
+    @DisplayName("성공: 인기 공고 등록")
     void register_success() {
         // given
         Long jobpostingId = 1L;
@@ -117,7 +117,7 @@ class JobpostingHotServiceTest {
     }
 
     @Test
-    @DisplayName("인기 공고 등록 - 존재하지 않는 채용공고")
+    @DisplayName("실패: 인기 공고 등록 - 존재하지 않는 채용공고")
     void register_notFound() {
         // given
         Long jobpostingId = 999L;
